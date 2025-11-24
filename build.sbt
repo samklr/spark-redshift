@@ -217,6 +217,10 @@ lazy val root = Project("spark-redshift", file("."))
       "org.apache.spark" %% "spark-hive" % testSparkVersion % "provided" exclude("org.apache.hadoop", "hadoop-client") force(),
       "org.apache.spark" %% "spark-avro" % testSparkVersion % "provided" exclude("org.apache.avro", "avro-mapred") force()
     ),
+    excludeDependencies ++= Seq(
+      // Excluding jackson-mapper-asl due to known CVEs and it's not used by this project
+      ExclusionRule(organization = "org.codehaus.jackson", name = "jackson-mapper-asl")
+    ),
     retrieveManaged := true,
     ScoverageKeys.coverageHighlighting := true,
     logBuffered := false,
