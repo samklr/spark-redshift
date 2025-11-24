@@ -16,6 +16,11 @@
 
 # spark-redshift Changelog
 
+## 6.5.1 (2025-11-21)
+- Excluded unused dependency jackson-mapper-asl dependency due to CVEs
+- Upgraded Apache Spark dependency to version 3.5.7
+- Upgraded to JDBC version 2.2.0
+
 ## 6.5.0 (2025-10-15)
 - Upgraded to AWS SDK v2
 - Upgraded to JDBC version 2.1.0.34
