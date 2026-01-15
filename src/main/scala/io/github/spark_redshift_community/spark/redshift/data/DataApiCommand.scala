@@ -17,12 +17,15 @@ package io.github.spark_redshift_community.spark.redshift.data
 
 import software.amazon.awssdk.services.redshiftdata.RedshiftDataClient
 import software.amazon.awssdk.services.redshiftdata.model._
+import software.amazon.awssdk.services.redshiftdata.model.ValidationException
 import io.github.spark_redshift_community.spark.redshift.Utils
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable.ArrayBuffer
-import collection.JavaConverters._
+import scala.collection.JavaConverters._
 import scala.collection.Seq
+import scala.util.{Try, Success, Failure}
+import java.util.concurrent.ThreadLocalRandom
 
 class DataApiCommand(connection: DataAPIConnection,
                      params: Option[Seq[QueryParameter[_]]] = None) {
@@ -159,8 +162,8 @@ class DataApiCommand(connection: DataAPIConnection,
       }
     }
 
-    // Execute the statement request and remember the handle for potential cancellation later.
-    val result = client.executeStatement(statementRequestBuilder.build())
+    // Execute the statement request with retry logic for throttling
+    val result = executeWithRetry(() => client.executeStatement(statementRequestBuilder.build()))
     requestId = result.id()
     log.info("Issued Redshift Data API execute statement with request id: {}", requestId)
 
@@ -204,8 +207,8 @@ class DataApiCommand(connection: DataAPIConnection,
         "Parameters are not permitted with Data API batch execution!")
     }
 
-    // Execute the statement request and remember the handle for potential cancellation later.
-    val result = client.batchExecuteStatement(statementRequestBuilder.build())
+    // Execute the statement request with retry logic for throttling
+    val result = executeWithRetry(() => client.batchExecuteStatement(statementRequestBuilder.build()))
     requestId = result.id()
     log.info("Issued Redshift Data API batch execute statement with request id: {}", requestId)
 
@@ -324,5 +327,60 @@ class DataApiCommand(connection: DataAPIConnection,
       .build()
     val cancelResult = client.cancelStatement(cancelRequest)
     cancelResult.status()
+  }
+
+  /**
+   * Executes a Data API operation with exponential backoff retry for throttling exceptions.
+   * 
+   * Note: This implementation uses Thread.sleep() which blocks the calling thread. This is
+   * acceptable for the Data API client as requests are typically long-running operations.
+   * In highly concurrent scenarios with many parallel requests, consider using a non-blocking
+   * retry mechanism or a dedicated retry library (e.g., Akka Retry, Failsafe).
+   * 
+   * @param operation The operation to execute with retry logic
+   * @param maxRetries Maximum number of retry attempts (default: 5)
+   * @return The result of the operation
+   * @throws RuntimeException if max retries exhausted or non-throttling exception occurs
+   */
+  private def executeWithRetry[T](operation: () => T, maxRetries: Int = 5): T = {
+    val (retryDelayMin, retryDelayMax, retryDelayMult) = getDataApiDelayParams()
+    var attempt = 0
+    var delay = retryDelayMin
+
+    while (attempt <= maxRetries) {
+      Try(operation()) match {
+        case Success(result) => return result
+        case Failure(ex) if isThrottlingException(ex) && attempt < maxRetries =>
+          attempt += 1
+          log.warn(s"Data API throttling detected (attempt $attempt/$maxRetries), retrying after ${delay}ms: ${ex.getMessage}")
+          
+          // Add jitter to prevent thundering herd
+          val jitteredDelay = delay + ThreadLocalRandom.current().nextDouble(0, delay * 0.1)
+          Thread.sleep(jitteredDelay.toLong)
+          
+          delay = Math.min(delay * retryDelayMult, retryDelayMax)
+        case Failure(ex) if isThrottlingException(ex) =>
+          // Max retries exhausted with throttling exception - chain it for debugging
+          throw new RuntimeException(
+            s"Data API operation failed after $maxRetries retries due to throttling", 
+            ex
+          )
+        case Failure(ex) => throw ex
+      }
+    }
+    
+    // This point should never be reached, but throw defensively if it is
+    throw new RuntimeException(s"Data API operation failed after $maxRetries retries")
+  }
+
+  /**
+   * Checks if an exception is a throttling exception that should be retried.
+   */
+  private def isThrottlingException(ex: Throwable): Boolean = {
+    ex match {
+      case validationEx: ValidationException =>
+        Option(validationEx.getMessage).exists(_.contains("Throttling"))
+      case _ => false
+    }
   }
 }
