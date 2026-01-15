@@ -83,7 +83,7 @@ private[redshift] object AWSCredentialsUtils {
 
     uriScheme match {
       case "s3" | "s3n" | "s3a" =>
-        DefaultCredentialsProvider.create()
+        DefaultCredentialsProvider.builder().build()
       case other =>
         throw new IllegalArgumentException(s"Unrecognized scheme $other; expected s3, s3n, or s3a")
     }

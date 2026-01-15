@@ -324,7 +324,7 @@ private[redshift] class RedshiftWriter(
           convertedValues(i) = conversionFunctions(i)(row(i))
           i += 1
         }
-        Row.fromSeq(convertedValues)
+        Row.fromSeq(convertedValues.toIndexedSeq)
       }
     }
 
@@ -390,7 +390,7 @@ private[redshift] class RedshiftWriter(
       // length is necessary for parquet format
       val filesToLoad: Seq[(String, Long)] = {
         val nonEmptyPartitionIds = nonEmptyPartitions.value.toSet
-        fs.listStatus(new Path(tempDir)).map(status => (status.getPath.getName, status.getLen))
+        fs.listStatus(new Path(tempDir)).map(status => (status.getPath.getName, status.getLen)).toSeq
           .collect {
           case file @ (partitionIdRegex(id), _) if nonEmptyPartitionIds.contains(id.toInt)
           => file

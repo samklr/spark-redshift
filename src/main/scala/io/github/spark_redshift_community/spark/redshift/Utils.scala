@@ -210,7 +210,7 @@ private[redshift] object Utils {
 
         rules.exists { rule =>
           rule.status().toString == "Enabled" &&
-            (rule.prefix() == null || s3Location.key.startsWith(rule.prefix()))
+            (rule.filter() == null || rule.filter().prefix() == null || s3Location.key.startsWith(rule.filter().prefix()))
         }
       }
 

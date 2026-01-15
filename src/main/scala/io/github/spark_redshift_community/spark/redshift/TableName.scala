@@ -28,7 +28,7 @@ import scala.collection.mutable.ArrayBuffer
 private[redshift] case class TableName(unescapedDatabaseName: String,
                                        unescapedSchemaName: String,
                                        unescapedTableName: String) {
-  private def quote(str: String) = '"' + str.replace("\"", "\"\"") + '"'
+  private def quote(str: String) = "\"" + str.replace("\"", "\"\"") + "\""
   def escapedDatabaseName: String = quote(unescapedDatabaseName)
   def escapedSchemaName: String = quote(unescapedSchemaName)
   def escapedTableName: String = quote(unescapedTableName)
