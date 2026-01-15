@@ -14,4 +14,4 @@
  * limitations under the License.
  */
 
-ThisBuild / version := "6.5.1"
+ThisBuild / version := "6.6.0"

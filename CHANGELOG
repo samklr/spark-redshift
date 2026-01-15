@@ -16,6 +16,28 @@
 
 # spark-redshift Changelog
 
+## 6.6.0 (2026-1-15)
+- Support for Apache Spark 4.0.0, which includes Scala 2.13 as its bundled Scala version [Ruei-Yang Huang]
+- Updated deprecated syntax and APIs for compatibility with Scala 2.13 [Ruei-Yang Huang]
+- Added retry logic for DataAPI throttling exceptions (e.g., ThrottlingException), automatically retrying affected operations with configurable backoff strategies to improve resilience during rate-limited scenarios [Ruei-Yang Huang]
+
+## 6.5.1 (2025-11-17)
+- Excluded unused dependency jackson-mapper-asl dependency due to CVEs [Luis Garza]
+- Upgraded Apache Spark dependency to version 3.5.7 [Luis Garza]
+- Upgraded to JDBC version 2.2.0 [Luis Garza]
+
+## 6.5.0 (2025-10-08)
+- Upgraded to AWS SDK v2 [Luis Garza]
+- Improved AWS credentials handling by deferring credential resolution until actually needed [Luis Garza]
+- Fixed string comparison in integration tests to handle cross-platform line ending differences [Luis Garza]
+
+## 6.4.3 (2025-07-01)
+- Upgraded Apache Spark dependency to version 3.5.6 [Luis Garza]
+- Upgraded to JDBC version 2.1.0.33 [Luis Garza]
+- Upgraded sbt build tool to version 1.11.2 [Ruei-Yang Huang]
+- Updated Sonatype publishing from OSSRH to Central Publisher Portal [Ruei-Yang Huang]
+- Fixed getDefaultRegion handling to return null on exceptions, aligning with AWS SDK behavior [Ruei-Yang Huang]
+
 ## 6.4.2 (2025-04-09)
 - Add spark configurations for enforcing secure JDBC connections and usage of aws_iam_role for authorizing Redshift COPY/UNLOAD operations.
 - Verified the connector is compatible with the latest Spark patch release 3.5.5.
