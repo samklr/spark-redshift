@@ -19,7 +19,6 @@
  */
 package io.github.spark_redshift_community.spark.redshift.test
 
-import io.github.spark_redshift_community.spark.redshift.test.InMemoryS3AFileSystem
 import java.io.FileNotFoundException
 
 import org.apache.hadoop.fs.{FileAlreadyExistsException, FileStatus, Path}

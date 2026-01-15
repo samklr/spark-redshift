@@ -146,7 +146,7 @@ package object querygeneration {
           new MetadataBuilder()
             .withMetadata(expr.metadata)
             .putString(ORIG_NAME, expr.name)
-            .build
+            .build()
         } else expr.metadata
 
       val altName = s"""${alias}_${col_names.next()}"""
@@ -160,7 +160,7 @@ package object querygeneration {
                 new MetadataBuilder()
                   .withMetadata(metadata)
                   .putString("redshift_type", r.metadata.getString("redshift_type"))
-                  .build
+                  .build()
               } else metadata
             case _ => metadata
           }

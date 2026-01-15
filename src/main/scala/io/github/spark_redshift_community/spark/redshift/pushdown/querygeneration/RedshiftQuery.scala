@@ -715,7 +715,7 @@ case class JoinQuery(left: RedshiftQuery,
         right.helper.nullableOutputWithQualifier
       "FULL OUTER JOIN"
     case Cross => "CROSS JOIN"
-    case _ => throw new MatchError
+    case _ => throw new MatchError("Unexpected missing match on joinType!")
   }
 
   override val helper: QueryHelper =
@@ -750,7 +750,7 @@ case class LeftSemiJoinQuery(left: RedshiftQuery,
       children = Seq(left),
       projections = Some(left.helper.outputWithQualifier),
       outputAttributes = None,
-      alias = alias.next
+      alias = alias.next()
     )
 
   val cond: Seq[Expression] =
@@ -763,7 +763,7 @@ case class LeftSemiJoinQuery(left: RedshiftQuery,
       FilterQuery(
         conditions = cond,
         child = right,
-        alias = alias.next,
+        alias = alias.next(),
         fields = Some(
           left.helper.outputWithQualifier ++ right.helper.outputWithQualifier
         )

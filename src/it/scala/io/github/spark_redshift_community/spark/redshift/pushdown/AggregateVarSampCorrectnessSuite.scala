@@ -15,6 +15,7 @@
  */
 package io.github.spark_redshift_community.spark.redshift.pushdown.test
 
+import io.github.spark_redshift_community.spark.redshift.ParallelUtils
 import org.apache.spark.sql.Row
 
 trait AggregateVarSampCorrectnessSuite extends IntegrationPushdownSuiteBase {
@@ -104,7 +105,7 @@ trait AggregateVarSampCorrectnessSuite extends IntegrationPushdownSuiteBase {
       (1E-6, "col_decimal_1_0_zstd", 28.197555951190292)
     )
 
-    inputList.par.foreach(test_case => {
+    ParallelUtils.par(inputList).foreach(test_case => {
       val epsilon = test_case._1
       val column_name = test_case._2.toUpperCase
       val expected_res = test_case._3
@@ -114,18 +115,24 @@ trait AggregateVarSampCorrectnessSuite extends IntegrationPushdownSuiteBase {
 
       checkAnswer(
         sqlContext.sql(
-          s"""SELECT (VAR_SAMP ($column_name)) BETWEEN ${lower} and ${upper}
+          s"""SELECT (VAR_SAMP ($column_name)) BETWEEN $lower and $upper
              |FROM test_table""".stripMargin),
         Seq(Row(true)))
 
       checkSqlStatement(
         s""" SELECT ( ( ( VAR_SAMP ( CAST ( "SQ_1"."SQ_1_COL_0" AS FLOAT8 ) )
-           | >= ${lower} )
-           | AND ( VAR_SAMP ( CAST ( "SQ_1"."SQ_1_COL_0" AS FLOAT8 ) ) <= ${upper} ) ) )
+           | >= $lower )
+           | AND ( VAR_SAMP ( CAST ( "SQ_1"."SQ_1_COL_0" AS FLOAT8 ) ) <= $upper ) ) )
            | AS "SQ_2_COL_0"
            | FROM ( SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0"
            | FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0" )
-           | AS "SQ_1" LIMIT 1""".stripMargin)
+           | AS "SQ_1" LIMIT 1""".stripMargin,
+        s"""SELECT ( ( ( "SQ_2"."SQ_2_COL_0" >= $lower ) AND
+          | ( "SQ_2"."SQ_2_COL_0" <= $upper ) ) ) AS "SQ_3_COL_0" FROM
+          | ( SELECT ( VAR_SAMP ( CAST ( "SQ_1"."SQ_1_COL_0" AS FLOAT8 ) ) )
+          | AS "SQ_2_COL_0" FROM ( SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0"
+          | FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0" )
+          | AS "SQ_1" LIMIT 1 ) AS "SQ_2"""".stripMargin)
     })
   }
 
@@ -216,7 +223,7 @@ trait AggregateVarSampCorrectnessSuite extends IntegrationPushdownSuiteBase {
       (1E-6, "col_decimal_1_0_zstd", 31.66666666666666)
     )
 
-    inputList.par.foreach(test_case => {
+    ParallelUtils.par(inputList).foreach(test_case => {
       val epsilon = test_case._1
       val column_name = test_case._2.toUpperCase
       val expected_res = test_case._3
@@ -226,18 +233,24 @@ trait AggregateVarSampCorrectnessSuite extends IntegrationPushdownSuiteBase {
 
       checkAnswer(
         sqlContext.sql(
-          s"""SELECT VARIANCE (DISTINCT $column_name) BETWEEN ${lower} and ${upper}
+          s"""SELECT VARIANCE (DISTINCT $column_name) BETWEEN $lower and $upper
              | FROM test_table""".stripMargin),
         Seq(Row(true)))
 
       checkSqlStatement(
         s"""SELECT ( ( ( VARIANCE ( DISTINCT CAST ( "SQ_1"."SQ_1_COL_0" AS FLOAT8 ) )
-           | >= ${lower} ) AND
+           | >= $lower ) AND
            | ( VARIANCE ( DISTINCT CAST ( "SQ_1"."SQ_1_COL_0" AS FLOAT8 ) ) <=
-           | ${upper} ) ) ) AS "SQ_2_COL_0"
+           | $upper ) ) ) AS "SQ_2_COL_0"
            | FROM ( SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0"
            | FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0" )
-           | AS "SQ_1" LIMIT 1""".stripMargin)
+           | AS "SQ_1" LIMIT 1""".stripMargin,
+        s"""SELECT ( ( ( "SQ_2"."SQ_2_COL_0" >= $lower ) AND
+          | ( "SQ_2"."SQ_2_COL_0" <= $upper ) ) ) AS "SQ_3_COL_0" FROM
+          | ( SELECT ( VARIANCE ( DISTINCT CAST ( "SQ_1"."SQ_1_COL_0" AS FLOAT8 ) ) )
+          | AS "SQ_2_COL_0" FROM ( SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0"
+          | FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0" ) AS "SQ_1"
+          | LIMIT 1 ) AS "SQ_2"""".stripMargin)
     })
   }
 
@@ -251,7 +264,7 @@ trait AggregateVarSampCorrectnessSuite extends IntegrationPushdownSuiteBase {
       ("col_float8_zstd", 1199.7061692927862)
     )
 
-    inputList.par.foreach(test_case => {
+    ParallelUtils.par(inputList).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -280,7 +293,7 @@ trait AggregateVarSampCorrectnessSuite extends IntegrationPushdownSuiteBase {
       ("col_float8_zstd", 1199.7061692927814)
     )
 
-    inputList.par.foreach(test_case => {
+    ParallelUtils.par(inputList).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -289,17 +302,23 @@ trait AggregateVarSampCorrectnessSuite extends IntegrationPushdownSuiteBase {
 
       checkAnswer(
         sqlContext.sql(
-          s"""SELECT VARIANCE (DISTINCT $column_name) BETWEEN ${lower} AND ${upper}
+          s"""SELECT VARIANCE (DISTINCT $column_name) BETWEEN $lower AND $upper
              | FROM test_table""".stripMargin),
         Seq(Row(true)))
 
       checkSqlStatement(
         s"""SELECT ( ( ( VARIANCE ( DISTINCT "SQ_1"."SQ_1_COL_0" )
-           | >= ${lower} ) AND ( VARIANCE ( DISTINCT "SQ_1"."SQ_1_COL_0" )
-           | <= ${upper} ) ) ) AS "SQ_2_COL_0"
+           | >= $lower ) AND ( VARIANCE ( DISTINCT "SQ_1"."SQ_1_COL_0" )
+           | <= $upper ) ) ) AS "SQ_2_COL_0"
            | FROM ( SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0"
            | FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0" )
-           | AS "SQ_1" LIMIT 1""".stripMargin)
+           | AS "SQ_1" LIMIT 1""".stripMargin,
+        s"""SELECT ( ( ( "SQ_2"."SQ_2_COL_0" >= $lower ) AND
+          | ( "SQ_2"."SQ_2_COL_0" <= $upper ) ) ) AS "SQ_3_COL_0" FROM
+          | ( SELECT ( VARIANCE ( DISTINCT "SQ_1"."SQ_1_COL_0" ) ) AS
+          | "SQ_2_COL_0" FROM ( SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0"
+          | FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0" )
+          | AS "SQ_1" LIMIT 1 ) AS "SQ_2"""".stripMargin)
     })
   }
 }

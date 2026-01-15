@@ -479,7 +479,7 @@ case class RedshiftRelation(
     }
 
     if (conversionNeeded) {
-      jsonLoaded.queryExecution.executedPlan.execute.map({ row: InternalRow =>
+      jsonLoaded.queryExecution.executedPlan.execute().map({ row: InternalRow =>
         val typeConvertedRow = row.toSeq(jsonLoadedSchema).zipWithIndex.map {
           case (f, i) =>
             parquetDataTypeConvert(f, resultSchema.fields(i).dataType,

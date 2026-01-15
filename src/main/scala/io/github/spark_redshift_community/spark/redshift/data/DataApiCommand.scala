@@ -20,7 +20,6 @@ import software.amazon.awssdk.services.redshiftdata.model._
 import io.github.spark_redshift_community.spark.redshift.Utils
 import org.slf4j.LoggerFactory
 
-import scala.collection.JavaConverters.seqAsJavaListConverter
 import scala.collection.mutable.ArrayBuffer
 import collection.JavaConverters._
 import scala.collection.Seq

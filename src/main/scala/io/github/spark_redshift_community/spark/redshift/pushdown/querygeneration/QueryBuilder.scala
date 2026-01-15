@@ -18,10 +18,9 @@
 package io.github.spark_redshift_community.spark.redshift.pushdown.querygeneration
 
 import io.github.spark_redshift_community.spark.redshift.pushdown.deoptimize.UndoCharTypePadding
-import io.github.spark_redshift_community.spark.redshift.pushdown.{RedshiftDMLExec, RedshiftPlan, RedshiftSQLStatement, RedshiftScanExec, RedshiftStrategy}
-import io.github.spark_redshift_community.spark.redshift.{RedshiftFailMessage, RedshiftPushdownException, RedshiftPushdownUnsupportedException, RedshiftRelation}
+import io.github.spark_redshift_community.spark.redshift.pushdown.{AggregateExtractor, LocalRelationExtractor, LogicalRedshiftRelationExtractor, RedshiftDMLExec, RedshiftPlan, RedshiftSQLStatement, RedshiftScanExec, RedshiftStrategy, SortExtractor, WindowExtractor}
+import io.github.spark_redshift_community.spark.redshift.{RedshiftFailMessage, RedshiftPushdownException, RedshiftPushdownUnsupportedException}
 import io.github.spark_redshift_community.spark.redshift.pushdown.optimizers.LeftSemiAntiJoinOptimizations.{isDistinctAggregate, isPassThroughProjection, isSetOperation, pullUpLeftSemiJoinOverProjectAndInnerJoin}
-import org.apache.oro.text.MatchAction
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.{Alias, Attribute, Expression, NamedExpression}
@@ -30,7 +29,7 @@ import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.command.ExecutedCommandExec
-import org.apache.spark.sql.execution.datasources.{InsertIntoDataSourceCommand, LogicalRelation}
+import org.apache.spark.sql.execution.datasources.InsertIntoDataSourceCommand
 import org.apache.spark.sql.types.{StructField, StructType}
 import org.slf4j.LoggerFactory
 
@@ -93,7 +92,7 @@ class QueryBuilder(plan: LogicalPlan) {
    * @return Whether a logical plan contains a redshift relation (table)
    */
   private def containsRedshiftRelation(plan: LogicalPlan): Boolean = plan match {
-    case LogicalRelation(_: RedshiftRelation, _, _, _) => true
+    case LogicalRedshiftRelationExtractor(_, _) => true
     case _ => plan.children.exists(containsRedshiftRelation)
   }
 
@@ -149,17 +148,16 @@ class QueryBuilder(plan: LogicalPlan) {
    */
   private def generateQueries(plan: LogicalPlan): Option[RedshiftQuery] = {
     plan match {
-      case l @ LogicalRelation(rsRelation: RedshiftRelation, _, _, _) =>
-        Some(SourceQuery(rsRelation, l.output, alias.next))
-      case l @ LocalRelation(output: Seq[Attribute], _, _) =>
-        Some(LocalQuery(l, output, alias.next))
-      case DeleteFromTable(l @ LogicalRelation(relation: RedshiftRelation, _, _, _), condition) =>
-        Some(DeleteQuery(SourceQuery(relation, l.output, alias.next()), condition))
-      case UpdateTable(l @ LogicalRelation(r: RedshiftRelation, _, _, _), assignments, condition) =>
-        Some(UpdateQuery(SourceQuery(r, l.output, alias.next()), assignments, condition))
-      case InsertIntoDataSourceCommand(l@LogicalRelation(relation: RedshiftRelation, _, _, _),
-      plan, overwrite) =>
-        Some(InsertQuery(SourceQuery(relation, l.output, alias.next()),
+      case LogicalRedshiftRelationExtractor(l, r) => Some(SourceQuery(r, l.output, alias.next()))
+      case LocalRelationExtractor(l, output) => Some(LocalQuery(l, output, alias.next()))
+      case DeleteFromTable(
+        LogicalRedshiftRelationExtractor(l, r), condition) =>
+          Some(DeleteQuery(SourceQuery(r, l.output, alias.next()), condition))
+      case UpdateTable(
+        LogicalRedshiftRelationExtractor(l, r), assignments, condition) =>
+          Some(UpdateQuery(SourceQuery(r, l.output, alias.next()), assignments, condition))
+      case InsertIntoDataSourceCommand(LogicalRedshiftRelationExtractor(l, r), plan, overwrite) =>
+        Some(InsertQuery(SourceQuery(r, l.output, alias.next()),
           generateQueries(EliminateSubqueryAliasesAndView(plan)), overwrite))
       case MergeIntoTableExtractor(targetTable, target, sourcePlan, mergeCondition, matchedActions,
                                    notMatchedActions, notMatchedBySourceActions) =>
@@ -183,9 +181,9 @@ class QueryBuilder(plan: LogicalPlan) {
           }
         }
         sourcePlan match {
-          case LogicalRelation(source: RedshiftRelation, _, _, _) =>
+          case LogicalRedshiftRelationExtractor(_, r) =>
             Some(MergeQuery(SourceQuery(target, targetTable.output, alias.next()),
-              SourceQuery(source, sourcePlan.output, alias.next()),
+              SourceQuery(r, sourcePlan.output, alias.next()),
               mergeCondition, matchedActions, notMatchedActions, notMatchedBySourceActions))
           case _ =>
             throw new RedshiftPushdownUnsupportedException(
@@ -201,20 +199,19 @@ class QueryBuilder(plan: LogicalPlan) {
         if (isDistinctAggregate(plan) && isSetOperation(child, LeftSemi, checkDistinct = false)) {
           child match {
             case BinaryOp(left, right) =>
-              return Some(SetQuery(Seq(left, right), alias.next, "INTERSECT"))
+              return Some(SetQuery(Seq(left, right), alias.next(), "INTERSECT"))
             case _ =>
           }
         }
 
         plan match {
-          case Aggregate(_, _, project: Project) if isDistinctAggregate(plan) =>
-            // Check if the project is a pass-through projection
+          case AggregateExtractor(_, _, _, project: Project) if isDistinctAggregate(plan) =>
             if (isPassThroughProjection(project.projectList, project.child)
               && isSetOperation(project.child, LeftSemi, checkDistinct = false)) {
               project.child match {
                 case BinaryOp(left, right) =>
                   return Some(ProjectQuery(project.projectList,
-                    SetQuery(Seq(left, right), alias.next, "INTERSECT"), alias.next))
+                    SetQuery(Seq(left, right), alias.next(), "INTERSECT"), alias.next()))
                 case _ =>
               }
             }
@@ -225,11 +222,11 @@ class QueryBuilder(plan: LogicalPlan) {
         generateQueries(child) map { subQuery =>
           plan match {
             case Filter(condition, _) =>
-              FilterQuery(Seq(condition), subQuery, alias.next)
+              FilterQuery(Seq(condition), subQuery, alias.next())
             case Project(fields, _) =>
-              ProjectQuery(fields, subQuery, alias.next)
-            case Aggregate(groups, fields, _) =>
-              AggregateQuery(fields, groups, subQuery, alias.next)
+              ProjectQuery(fields, subQuery, alias.next())
+            case AggregateExtractor(_, groups, fields, _) =>
+              AggregateQuery(fields, groups, subQuery, alias.next())
             // when a limit is applied to a projection of a sort query, the limit
             // should be combined with the sort if the sort has no limit, combining
             // the queries in this way can prevent a server error:
@@ -242,21 +239,21 @@ class QueryBuilder(plan: LogicalPlan) {
               val newSort = SortLimitQuery(
                 Some(limitExpr), originalSort.orderBy, originalSort.child, originalSort.alias)
               ProjectQuery(originalProject.columns, newSort, originalProject.alias)
-            case Limit(limitExpr, Sort(orderExpr, true, _)) =>
-              SortLimitQuery(Some(limitExpr), orderExpr, subQuery, alias.next)
+            case Limit(limitExpr, SortExtractor(orderExpr, true, _)) =>
+              SortLimitQuery(Some(limitExpr), orderExpr, subQuery, alias.next())
             case Limit(limitExpr, _) =>
-              SortLimitQuery(Some(limitExpr), Seq.empty, subQuery, alias.next)
+              SortLimitQuery(Some(limitExpr), Seq.empty, subQuery, alias.next())
 
-            case Sort(orderExpr, true, Limit(limitExpr, _)) =>
-              SortLimitQuery(Some(limitExpr), orderExpr, subQuery, alias.next)
-            case Sort(orderExpr, true, _) =>
-              SortLimitQuery(None, orderExpr, subQuery, alias.next)
+            case SortExtractor(orderExpr, true, Limit(limitExpr, _)) =>
+              SortLimitQuery(Some(limitExpr), orderExpr, subQuery, alias.next())
+            case SortExtractor(orderExpr, true, _) =>
+              SortLimitQuery(None, orderExpr, subQuery, alias.next())
 
-            case Window(windowExpressions, _, _, _) =>
+            case WindowExtractor(windowExpressions) =>
               WindowQuery(
                 windowExpressions,
                 subQuery,
-                alias.next,
+                alias.next(),
                 if (plan.output.isEmpty) None else Some(plan.output)
               )
 
@@ -267,11 +264,11 @@ class QueryBuilder(plan: LogicalPlan) {
       case BinaryOp(left, right) =>
 
         if (isSetOperation(plan, LeftSemi, checkDistinct = true)) {
-          return Some(SetQuery(Seq(left, right), alias.next, "INTERSECT"))
+          return Some(SetQuery(Seq(left, right), alias.next(), "INTERSECT"))
         }
 
         if (isSetOperation(plan, LeftAnti, checkDistinct = true)) {
-          return Some(SetQuery(Seq(left, right), alias.next, "EXCEPT"))
+          return Some(SetQuery(Seq(left, right), alias.next(), "EXCEPT"))
         }
 
         generateQueries(left).flatMap { l =>
@@ -280,13 +277,13 @@ class QueryBuilder(plan: LogicalPlan) {
               case Join(_, _, joinType, condition, _) =>
                 joinType match {
                   case Inner | LeftOuter | RightOuter | FullOuter =>
-                    JoinQuery(l, r, condition, joinType, alias.next)
+                    JoinQuery(l, r, condition, joinType, alias.next())
                   case LeftSemi =>
                     LeftSemiJoinQuery(l, r, condition, isAntiJoin = false, alias)
                   case LeftAnti =>
                     LeftSemiJoinQuery(l, r, condition, isAntiJoin = true, alias)
-                  case Cross => JoinQuery(l, r, condition, joinType, alias.next)
-                  case _ => throw new MatchError
+                  case Cross => JoinQuery(l, r, condition, joinType, alias.next())
+                  case _ => throw new MatchError("Unexpected missing match on joinType!")
                 }
             }
           }
@@ -303,7 +300,7 @@ class QueryBuilder(plan: LogicalPlan) {
             true
           )
         } else {
-          Some(SetQuery(Seq(left, right), alias.next, "INTERSECT"))
+          Some(SetQuery(Seq(left, right), alias.next(), "INTERSECT"))
         }
 
       case Except(left, right, isAll) =>
@@ -315,7 +312,7 @@ class QueryBuilder(plan: LogicalPlan) {
             true
           )
         } else {
-          Some(SetQuery(Seq(left, right), alias.next, "EXCEPT"))
+          Some(SetQuery(Seq(left, right), alias.next(), "EXCEPT"))
         }
 
       // From Spark 3.1, Union has 3 parameters
@@ -332,7 +329,7 @@ class QueryBuilder(plan: LogicalPlan) {
             true
           )
         } else {
-          Some(SetQuery(children, alias.next, "UNION ALL"))
+          Some(SetQuery(children, alias.next(), "UNION ALL"))
         }
 
       case _ =>

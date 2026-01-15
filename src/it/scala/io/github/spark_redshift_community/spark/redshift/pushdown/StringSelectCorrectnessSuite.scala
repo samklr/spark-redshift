@@ -15,6 +15,7 @@
  */
 package io.github.spark_redshift_community.spark.redshift.pushdown.test
 
+import io.github.spark_redshift_community.spark.redshift.ParallelUtils
 import org.apache.spark.sql.Row
 
 abstract class StringSelectCorrectnessSuite extends StringIntegrationPushdownSuiteBase {
@@ -44,7 +45,7 @@ abstract class StringSelectCorrectnessSuite extends StringIntegrationPushdownSui
       (9, "testvarstring", "  樂Multi趣  ")
     )
 
-    paramTuples.par.foreach(paramTuple => {
+    ParallelUtils.par(paramTuples).foreach(paramTuple => {
       val id = paramTuple._1
       val column = paramTuple._2
       val result = paramTuple._3

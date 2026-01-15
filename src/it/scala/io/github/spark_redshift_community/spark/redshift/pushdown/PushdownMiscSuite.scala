@@ -18,8 +18,8 @@ package io.github.spark_redshift_community.spark.redshift.pushdown.test
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import org.apache.spark.sql.types.{BooleanType, DateType, IntegerType, ShortType, StringType, StructField, StructType, TimestampType}
-
 import java.sql.{Date, Timestamp}
+import io.github.spark_redshift_community.spark.redshift.ParallelUtils
 
 abstract class PushdownMiscSuite extends IntegrationPushdownSuiteBase {
 
@@ -91,6 +91,11 @@ abstract class PushdownMiscSuite extends IntegrationPushdownSuiteBase {
       s"""SELECT ( CASE ( CAST ( "SQ_1"."TESTINT" AS FLOAT4 ) > "SQ_1"."TESTFLOAT" )
          | WHEN TRUE THEN \\'true\\' WHEN FALSE THEN \\'false\\' ELSE null END ) AS "SQ_2_COL_0"
          | FROM ( SELECT * FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0"
+         | WHERE ( ( "SQ_0"."TESTBOOL" IS NOT NULL ) AND "SQ_0"."TESTBOOL" ) ) AS "SQ_1"""".stripMargin,
+      s"""SELECT ( CASE ( CAST ( "SQ_1"."TESTINT" AS FLOAT8 ) >
+         | CAST ( "SQ_1"."TESTFLOAT" AS FLOAT8 ) )
+         | WHEN TRUE THEN \\'true\\' WHEN FALSE THEN \\'false\\' ELSE null END ) AS "SQ_2_COL_0"
+         | FROM ( SELECT * FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0"
          | WHERE ( ( "SQ_0"."TESTBOOL" IS NOT NULL ) AND "SQ_0"."TESTBOOL" ) ) AS "SQ_1"""".stripMargin
     )
   }
@@ -106,7 +111,7 @@ abstract class PushdownMiscSuite extends IntegrationPushdownSuiteBase {
       ("testtimestamp", "2015-07-01 00:00:00.001")
     )
 
-    paramTuples.par.foreach(paramTuple => {
+    ParallelUtils.par(paramTuples).foreach(paramTuple => {
       val column = paramTuple._1
       val result = paramTuple._2
 
@@ -141,6 +146,11 @@ abstract class PushdownMiscSuite extends IntegrationPushdownSuiteBase {
          | * FROM $test_table AS "RCQ_ALIAS" )
          |  AS "SQ_0" WHERE "SQ_0"."TESTINT" IN
          | ( 4 , 13 , 8 , 9 , 10 , 7 , 2 , 42 , 11 , 1 , 4141214 , 12 , 5 ) )
+         |  AS "SQ_1"""".stripMargin,
+      s"""SELECT ( "SQ_1"."TESTINT" ) AS "SQ_2_COL_0" FROM ( SELECT * FROM ( SELECT
+         | * FROM $test_table AS "RCQ_ALIAS" )
+         | AS "SQ_0" WHERE "SQ_0"."TESTINT" IN
+         | ( 11 , 1 , 4141214 , 4 , 13 , 8 , 9 , 10 , 7 , 2 , 42 , 12 , 5 ) )
          |  AS "SQ_1"""".stripMargin)
   }
 

@@ -15,6 +15,7 @@
  */
 package io.github.spark_redshift_community.spark.redshift.pushdown.test
 
+import io.github.spark_redshift_community.spark.redshift.ParallelUtils
 import org.apache.spark.sql.Row
 
 abstract class PushdownStringLikeSuite extends StringIntegrationPushdownSuiteBase {
@@ -46,7 +47,7 @@ abstract class PushdownStringLikeSuite extends StringIntegrationPushdownSuiteBas
       (9, "  %i%", true)
     )
 
-    columns.par.foreach(column => {
+    ParallelUtils.par(columns).foreach(column => {
       paramTuples.foreach(paramTuple => {
         val id = paramTuple._1
         val pattern = paramTuple._2
@@ -87,7 +88,7 @@ abstract class PushdownStringLikeSuite extends StringIntegrationPushdownSuiteBas
       """CONCAT(\'%\', CONCAT(\'Hello World\', \'%\'))"""
     )
 
-    columns.par.foreach(column => {
+    ParallelUtils.par(columns).foreach(column => {
       patterns.zip(expectedSqlPattern).foreach({case (pattern, sqlPattern) =>
         checkAnswer(
           sqlContext.sql(
@@ -107,7 +108,7 @@ abstract class PushdownStringLikeSuite extends StringIntegrationPushdownSuiteBas
 
   test("Boolean Split Tests", P1Test) {
     val columns = List("testfixedstring", "testvarstring")
-    columns.par.foreach(column => {
+    ParallelUtils.par(columns).foreach(column => {
       checkAnswer(
         sqlContext.sql(
           s"""SELECT LIKE($column, 'Hello%World') FROM test_table
@@ -128,7 +129,7 @@ abstract class PushdownStringLikeSuite extends StringIntegrationPushdownSuiteBas
 
   test("String Like tests", P1Test) {
     val columns = List("testfixedstring", "testvarstring")
-    columns.par.foreach(column => {
+    ParallelUtils.par(columns).foreach(column => {
       checkAnswer(
         sqlContext.sql(
           s"""SELECT LIKE($column, '%Hello%World%') FROM test_table

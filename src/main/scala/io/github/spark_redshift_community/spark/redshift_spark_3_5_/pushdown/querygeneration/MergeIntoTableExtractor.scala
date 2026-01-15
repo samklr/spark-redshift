@@ -19,7 +19,7 @@ import io.github.spark_redshift_community.spark.redshift.RedshiftRelation
 import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, MergeAction, MergeIntoTable}
 import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.execution.datasources.LogicalRelation
-object MergeIntoTableExtractor {
+private[querygeneration] object MergeIntoTableExtractor {
   def unapply(plan: LogicalPlan): Option[(LogicalPlan,
                                           RedshiftRelation,
                                           LogicalPlan,

@@ -45,7 +45,7 @@ private[redshift] class DataApiWrapper extends RedshiftWrapper with Serializable
   /**
    * This iterator automatically increments every time it is used.
    */
-  @transient implicit private lazy val callNumberGenerator = Iterator.from(1)
+  @transient implicit private lazy val callNumberGenerator: Iterator[Int] = Iterator.from(1)
 
   @transient implicit private lazy val ec: ExecutionContext = {
     val threadFactory = new ThreadFactory {
@@ -86,7 +86,7 @@ private[redshift] class DataApiWrapper extends RedshiftWrapper with Serializable
    */
   private def executeInterruptibly[T](cmd: DataApiCommand,
                                       op: DataApiCommand => T): T = {
-    val callNumber = callNumberGenerator.next
+    val callNumber = callNumberGenerator.next()
     try {
       log.info("Begin Redshift Data API call {}", callNumber)
       cancellationMap.put(cmd, callNumber)
@@ -131,7 +131,7 @@ private[redshift] class DataApiWrapper extends RedshiftWrapper with Serializable
 
   override def commit(conn: RedshiftConnection): Unit = {
     // Make sure we are not already auto-committing.
-    if (conn.getAutoCommit) {
+    if (conn.getAutoCommit()) {
       throw new IllegalStateException("Cannot commit when autoCommit is enabled.")
     }
 
@@ -141,7 +141,7 @@ private[redshift] class DataApiWrapper extends RedshiftWrapper with Serializable
 
   override def rollback(conn: RedshiftConnection): Unit = {
     // Make sure we are not already auto-committing.
-    if (conn.getAutoCommit) {
+    if (conn.getAutoCommit()) {
       throw new IllegalStateException("Cannot rollback when autoCommit is enabled.")
     }
 
@@ -157,7 +157,7 @@ private[redshift] class DataApiWrapper extends RedshiftWrapper with Serializable
     if (dataApiConnection.bufferedCommands.length > 0) {
 
       // Execute the buffered commands (if any).
-      executeBatch(conn, dataApiConnection.bufferedCommands)
+      executeBatch(conn, dataApiConnection.bufferedCommands.toSeq)
 
       // Reset for next time.
       dataApiConnection.bufferedCommands.clear()
@@ -481,6 +481,6 @@ private[redshift] class DataApiWrapper extends RedshiftWrapper with Serializable
         }
     }
 
-    (query, Option(parameters))
+    (query, Option(parameters.toSeq))
   }
 }

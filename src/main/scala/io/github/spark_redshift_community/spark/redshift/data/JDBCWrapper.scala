@@ -52,7 +52,7 @@ private[redshift] class JDBCWrapper extends RedshiftWrapper with Serializable {
   /**
    * This iterator automatically increments every time it is used.
    */
-  @transient implicit private lazy val callNumberGenerator = Iterator.from(1)
+  @transient implicit private lazy val callNumberGenerator: Iterator[Int] = Iterator.from(1)
 
   @transient implicit private lazy val ec: ExecutionContext = {
     val threadFactory = new ThreadFactory {
@@ -85,7 +85,7 @@ private[redshift] class JDBCWrapper extends RedshiftWrapper with Serializable {
 
   private def executeInterruptibly[T](statement: PreparedStatement,
                                       op: PreparedStatement => T): T = {
-    val callNumber = callNumberGenerator.next
+    val callNumber = callNumberGenerator.next()
     try {
       log.info("Begin JDBC call {}", callNumber)
       cancellationMap.put(statement, callNumber)

@@ -15,6 +15,7 @@
  */
 package io.github.spark_redshift_community.spark.redshift.pushdown.test
 
+import io.github.spark_redshift_community.spark.redshift.ParallelUtils
 import org.apache.spark.sql.Row
 
 abstract class BooleanNullOperatorCorrectnessSuite extends IntegrationPushdownSuiteBase {
@@ -180,7 +181,7 @@ abstract class BooleanNullOperatorCorrectnessSuite extends IntegrationPushdownSu
   )
   test("child IS NULL pushdown", PreloadTest) {
     // "Column name" and result size
-    allColumnNames.par.foreach( c_name => {
+    ParallelUtils.par(allColumnNames).foreach( c_name => {
       val column_name = c_name.toUpperCase()
       checkAnswer(
         sqlContext.sql(s"""SELECT count(*) FROM test_table where $column_name is NULL"""),
@@ -195,7 +196,7 @@ abstract class BooleanNullOperatorCorrectnessSuite extends IntegrationPushdownSu
   }
 
   test("child IS NOT NULL pushdown", PreloadTest) {
-    allColumnNames.par.foreach( c_name => {
+    ParallelUtils.par(allColumnNames).foreach( c_name => {
       val column_name = c_name.toUpperCase()
       checkAnswer(
         sqlContext.sql(s"""SELECT count(*) FROM test_table where $column_name is NOT NULL"""),

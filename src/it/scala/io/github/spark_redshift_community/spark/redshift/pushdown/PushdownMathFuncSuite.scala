@@ -16,6 +16,7 @@
 package io.github.spark_redshift_community.spark.redshift.pushdown.test
 
 import org.apache.spark.sql.Row
+import io.github.spark_redshift_community.spark.redshift.ParallelUtils
 
 abstract class PushdownMathFuncSuite extends IntegrationPushdownSuiteBase {
   test("Abs pushdown", P0Test, P1Test) {
@@ -104,7 +105,12 @@ abstract class PushdownMathFuncSuite extends IntegrationPushdownSuiteBase {
          |FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0" WHERE
          |( ( "SQ_0"."TESTFLOAT" IS NOT NULL ) AND ( ( "SQ_0"."TESTFLOAT" > 0.0::float4 )
          |AND ( "SQ_0"."TESTFLOAT" < 5.0::float4 ) ) ) ) AS "SQ_1"
-         |""".stripMargin
+         |""".stripMargin,
+      s"""SELECT ( LOG ( ( CAST ( "SQ_1"."TESTFLOAT" AS FLOAT8 ) * 100.0 ) ) )
+        | AS "SQ_2_COL_0" FROM ( SELECT * FROM ( SELECT *
+        | FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0" WHERE
+        | ( ( "SQ_0"."TESTFLOAT" IS NOT NULL ) AND ( ( "SQ_0"."TESTFLOAT" > 0.0 ::float4 )
+        |AND ( "SQ_0"."TESTFLOAT" < 5.0 ::float4 ) ) ) ) AS "SQ_1"""".stripMargin
     )
   }
 
@@ -151,7 +157,10 @@ abstract class PushdownMathFuncSuite extends IntegrationPushdownSuiteBase {
          |FROM ( SELECT * FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" )
          |AS "SQ_0" WHERE ( ( "SQ_0"."TESTDOUBLE" IS NOT NULL )
          |AND ( "SQ_0"."TESTDOUBLE" < 0.0 ) ) ) AS "SQ_1"
-         |""".stripMargin
+         |""".stripMargin,
+      // Spark 4.0 pushdown regression due to Ansi flag being enabled.
+      s"""SELECT "testdouble" FROM $test_table WHERE "testdouble" IS NOT NULL
+         |AND "testdouble" < 0.0""".stripMargin
     )
   }
 
@@ -215,7 +224,7 @@ abstract class PushdownMathFuncSuite extends IntegrationPushdownSuiteBase {
       (0.9999, "DECIMAL(10,4)", Seq(Row(1.0001000050001667))),
       (0.99999, "DECIMAL(11,5)", Seq(Row(1.00001000005)))
     )
-    input.par.foreach(test_case => {
+    ParallelUtils.par(input).foreach(test_case => {
       val add_on = test_case._1
       val cast_type = test_case._2
       val expected_res = test_case._3
@@ -345,7 +354,7 @@ class TextPushdownMathFuncSuite extends PushdownMathFuncSuite {
       (100, Seq(Row(7.307059979368067E43))),
       (1000, Seq(Row(Double.PositiveInfinity)))
     )
-    input.par.foreach(test_case => {
+    ParallelUtils.par(input).foreach(test_case => {
       val add_on = test_case._1
       val expected_res = test_case._2
       checkAnswer(
@@ -355,8 +364,13 @@ class TextPushdownMathFuncSuite extends PushdownMathFuncSuite {
         expected_res)
 
       checkSqlStatement(
-          s"""SELECT ( EXP ( CAST ( ( CAST ( "SQ_1"."TESTBYTE" AS INTEGER ) + $add_on) AS FLOAT8 ) ) )
-             |AS "SQ_2_COL_0"
+          s"""SELECT ( EXP ( CAST ( ( CAST ( "SQ_1"."TESTBYTE" AS INTEGER )
+             |+ $add_on) AS FLOAT8 ) ) ) AS "SQ_2_COL_0"
+             |FROM ( SELECT * FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" )
+             |AS "SQ_0" WHERE ( ( "SQ_0"."TESTBOOL" IS NOT NULL )
+             |AND "SQ_0"."TESTBOOL" ) ) AS "SQ_1"
+             |""".stripMargin,
+          s"""SELECT ( EXP ( CAST ( "SQ_1"."TESTBYTE" AS FLOAT8 ) ) ) AS "SQ_2_COL_0"
              |FROM ( SELECT * FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" )
              |AS "SQ_0" WHERE ( ( "SQ_0"."TESTBOOL" IS NOT NULL )
              |AND "SQ_0"."TESTBOOL" ) ) AS "SQ_1"
@@ -386,7 +400,7 @@ class TextNoPushdownMathFuncSuite extends PushdownMathFuncSuite {
       (100, Seq(Row(7.307059979368068E43))),
       (1000, Seq(Row(Double.PositiveInfinity)))
     )
-    input.par.foreach(test_case => {
+    ParallelUtils.par(input).foreach(test_case => {
       val add_on = test_case._1
       val expected_res = test_case._2
       checkAnswer(

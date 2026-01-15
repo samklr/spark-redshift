@@ -15,6 +15,7 @@
  */
 package io.github.spark_redshift_community.spark.redshift.pushdown.test
 
+import io.github.spark_redshift_community.spark.redshift.ParallelUtils
 import org.apache.spark.sql.Row
 
 import java.sql.Timestamp
@@ -32,7 +33,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
   test("Test COUNT(*) aggregation statements against correctness dataset", PreloadTest) {
     val cases = Seq(testCount00, testCount01)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for count(short)
@@ -51,7 +52,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
       testCount17_2
     )
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for count(int)
@@ -72,7 +73,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     testCount27,
     testCount27_2)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for count(long)
@@ -89,7 +90,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     testCount37,
     testCount37_2)
 
-    cases.par.foreach {doTest(sqlContext, _)}
+    ParallelUtils.par(cases).foreach {doTest(sqlContext, _)}
   }
 
   // define a test for count(decimal)
@@ -107,7 +108,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     // group by
     testCount49)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for count(float)
@@ -125,7 +126,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     testCount58,
     testCount59)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for count(boolean)
@@ -140,7 +141,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     testCount64,
     testCount64_2)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for count(char)
@@ -151,7 +152,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     testCount72,
     testCount73)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for count(varchar)
@@ -164,7 +165,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     // group by
     testCount84)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for count(date)
@@ -180,7 +181,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     // group by
     testCount97)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for count(timestamp)
@@ -196,7 +197,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     // group by
      testCount107)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for count(timestamptz)
@@ -210,7 +211,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     testCount115,
     testCount116)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for max(short)
@@ -226,7 +227,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     // group by
     testMax07)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for max(int)
@@ -242,7 +243,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     // group by
     testMax17)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for max(long)
@@ -258,7 +259,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     // group by
     testMax27)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for max(decimal)
@@ -276,7 +277,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     // group by
     testMax39)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for max(float)
@@ -294,7 +295,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     testMax48,
     testMax49)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for max(boolean)
@@ -307,7 +308,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     // group by
     testMax53)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for max(varchar)
@@ -320,7 +321,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     // group by
     testMax74)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for max(date)
@@ -336,7 +337,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     // group by
     testMax87)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for max(timestamp)
@@ -352,7 +353,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     // group by
     testMax97)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for min(short)
@@ -368,7 +369,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     // group by
     testMin07)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for min(int)
@@ -384,7 +385,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     // group by
     testMin17)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for min(long)
@@ -400,7 +401,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     // group by
     testMin27)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for min(decimal)
@@ -418,7 +419,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     // group by
     testMin39)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for min(float)
@@ -436,7 +437,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     testMin48,
     testMin49)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for min(boolean)
@@ -449,7 +450,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     // group by
     testMin53)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for min(varchar)
@@ -462,7 +463,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     // group by
     testMin74)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for min(date)
@@ -478,7 +479,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     // group by
     testMin87)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for min(timestamp)
@@ -494,7 +495,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     // group by
     testMin97)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for avg(short)
@@ -510,7 +511,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     // group by
     testAvg07)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for avg(int)
@@ -527,7 +528,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     testAvg17,
     testAvg18)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for avg(long)
@@ -543,7 +544,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     // group by
     testAvg27)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for avg(decimal)
@@ -557,7 +558,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     // group by
     testAvg35)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for avg(float)
@@ -575,7 +576,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     testAvg48,
     testAvg49)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for sum(short)
@@ -586,7 +587,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     testSum02,
     testSum03)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for sum(int)
@@ -597,7 +598,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     testSum12,
     testSum13)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for sum(long)
@@ -608,7 +609,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     testSum22,
     testSum23)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for sum(decimal)
@@ -619,7 +620,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     testSum32,
     testSum33)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for sum(float)
@@ -634,7 +635,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
     testSum46,
     testSum47)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // Timestamptz column is not handled correctly in parquet format as time zone information is not
@@ -689,7 +690,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
       ("col_timestamptz_zstd", Seq(Row(Timestamp.from(
         ZonedDateTime.parse("2018-10-15 19:50:18 UTC", formatter).toInstant))))
     )
-    input.par.foreach(test_case => {
+    ParallelUtils.par(input).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -756,7 +757,7 @@ abstract class PushdownAggregateCorrectnessSuite extends AggregateCountCorrectne
       ("col_timestamptz_zstd", Seq(Row(Timestamp.from(
         ZonedDateTime.parse("1970-01-01 07:08:06 UTC", formatter).toInstant))))
     )
-    input.par.foreach(test_case => {
+    ParallelUtils.par(input).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -826,7 +827,7 @@ class TextPushdownAggregateCorrectnessSuite extends PushdownAggregateCorrectness
     // group by
     testMax64)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // define a test for min(char)
@@ -839,7 +840,7 @@ class TextPushdownAggregateCorrectnessSuite extends PushdownAggregateCorrectness
     // group by
     testMin64)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 }
 

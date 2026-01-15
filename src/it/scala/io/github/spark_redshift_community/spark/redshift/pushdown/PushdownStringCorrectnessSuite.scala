@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 package io.github.spark_redshift_community.spark.redshift.pushdown.test
+import io.github.spark_redshift_community.spark.redshift.ParallelUtils
 
 abstract class PushdownStringCorrectnessSuite extends StringSubstringCorrectnessSuite
                                               with StringAsciiCorrectnessSuite
@@ -62,7 +63,7 @@ abstract class PushdownStringCorrectnessSuite extends StringSubstringCorrectness
     testTrim35,
     testTrim36)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // Define length tests
@@ -83,7 +84,7 @@ abstract class PushdownStringCorrectnessSuite extends StringSubstringCorrectness
     testLength12,
     testLength13)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // Define ascii tests
@@ -100,7 +101,7 @@ abstract class PushdownStringCorrectnessSuite extends StringSubstringCorrectness
     testAscii08,
     testAscii09)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // Define upper tests
@@ -119,7 +120,7 @@ abstract class PushdownStringCorrectnessSuite extends StringSubstringCorrectness
     testUpper10,
     testUpper11)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // Define lower tests
@@ -138,7 +139,7 @@ abstract class PushdownStringCorrectnessSuite extends StringSubstringCorrectness
     testLower10,
     testLower11)
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 
   // Define substring tests
@@ -193,7 +194,7 @@ abstract class PushdownStringCorrectnessSuite extends StringSubstringCorrectness
     testSubstr46)
 //    testSubstr47) // [Redshift-7057]
 
-    cases.par.foreach { doTest(sqlContext, _) }
+    ParallelUtils.par(cases).foreach { doTest(sqlContext, _) }
   }
 }
 

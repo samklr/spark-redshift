@@ -15,6 +15,7 @@
  */
 package io.github.spark_redshift_community.spark.redshift.pushdown.test
 
+import io.github.spark_redshift_community.spark.redshift.ParallelUtils
 import org.apache.spark.sql.Row
 
 abstract class BooleanInOperatorCorrectnessSuite extends IntegrationPushdownSuiteBase {
@@ -122,7 +123,7 @@ abstract class BooleanInOperatorCorrectnessSuite extends IntegrationPushdownSuit
       ("col_boolean_runlength", (true, false), 5000),
       ("col_boolean_zstd", (true, false), 5000)
     )
-    input.par.foreach( test_case => {
+    ParallelUtils.par(input).foreach( test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
       val result_size = test_case._3
@@ -152,7 +153,7 @@ abstract class BooleanInOperatorCorrectnessSuite extends IntegrationPushdownSuit
       ("col_decimal_18_18_runlength", "(-1,0,1)", 1),
       ("col_decimal_18_18_zstd", "(-1,0,1)", 0),
     )
-    input.par.foreach( test_case => {
+    ParallelUtils.par(input).foreach( test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
       val result_size = test_case._3
@@ -198,7 +199,7 @@ abstract class BooleanInOperatorCorrectnessSuite extends IntegrationPushdownSuit
       ("col_decimal_38_37_zstd",
         "(0.7664120400000000000000000000000000000,0.4022369500000000000000000000000000000)", 0)
     )
-    input.par.foreach( test_case => {
+    ParallelUtils.par(input).foreach( test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
       val result_size = test_case._3
@@ -310,7 +311,7 @@ abstract class BooleanInOperatorCorrectnessSuite extends IntegrationPushdownSuit
       ("col_varchar_max_zstd", s"('$string255Char', '$string2000Char')",
         s"(\\'$string255Char\\', \\'$string2000Char\\')", 0)
     )
-    input.par.foreach( test_case => {
+    ParallelUtils.par(input).foreach( test_case => {
       val column_name = test_case._1.toUpperCase
       val query_in = test_case._2
       val expected_res = test_case._3
@@ -328,62 +329,60 @@ abstract class BooleanInOperatorCorrectnessSuite extends IntegrationPushdownSuit
   }
 
   test("child in pushdown - date and timestamp type", PreloadTest) {
-    // "Column name" and result size
+    val d1 = "2010-05-11"
+    val d2 = "2010-05-12"
+    val t1 = "1994-05-19 01:03:01"
+    val t2 = "1994-05-19 01:03:02"
+    
     val input = List(
-      ("col_date_raw", "('2010-05-11', '2010-05-12')", "(\\'2010-05-11\\', \\'2010-05-12\\')", 2),
-      ("col_date_bytedict", "('2010-05-11', '2010-05-12')",
-        "(\\'2010-05-11\\', \\'2010-05-12\\')", 0),
-      ("col_date_delta", "('2010-05-11', '2010-05-12')",
-        "(\\'2010-05-11\\', \\'2010-05-12\\')", 0),
-      ("col_date_delta32k", "('2010-05-11', '2010-05-12')",
-        "(\\'2010-05-11\\', \\'2010-05-12\\')", 0),
-      ("col_date_lzo", "('2010-05-11', '2010-05-12')", "(\\'2010-05-11\\', \\'2010-05-12\\')", 0),
-      ("col_date_runlength", "('2010-05-11', '2010-05-12')",
-        "(\\'2010-05-11\\', \\'2010-05-12\\')", 3),
-      ("col_date_zstd", "('2010-05-11', '2010-05-12')", "(\\'2010-05-11\\', \\'2010-05-12\\')", 0),
-      ("col_timestamp_raw", "('1994-05-19 01:03:01', '1994-05-19 01:03:02')",
-        "(\\'1994-05-19 01:03:01\\', \\'1994-05-19 01:03:02\\')", 1),
-      ("col_timestamp_bytedict", "('1994-05-19 01:03:01', '1994-05-19 01:03:02')",
-        "(\\'1994-05-19 01:03:01\\', \\'1994-05-19 01:03:02\\')", 0),
-      ("col_timestamp_delta", "('1994-05-19 01:03:01', '1994-05-19 01:03:02')",
-        "(\\'1994-05-19 01:03:01\\', \\'1994-05-19 01:03:02\\')", 0),
-      ("col_timestamp_delta32k", "('1994-05-19 01:03:01', '1994-05-19 01:03:02')",
-        "(\\'1994-05-19 01:03:01\\', \\'1994-05-19 01:03:02\\')", 0),
-      ("col_timestamp_lzo", "('1994-05-19 01:03:01', '1994-05-19 01:03:02')",
-        "(\\'1994-05-19 01:03:01\\', \\'1994-05-19 01:03:02\\')", 0),
-      ("col_timestamp_runlength", "('1994-05-19 01:03:01', '1994-05-19 01:03:02')",
-        "(\\'1994-05-19 01:03:01\\', \\'1994-05-19 01:03:02\\')", 0),
-      ("col_timestamp_zstd", "('1994-05-19 01:03:01', '1994-05-19 01:03:02')",
-        "(\\'1994-05-19 01:03:01\\', \\'1994-05-19 01:03:02\\')", 0),
-      ("col_timestamptz_raw", "('1994-05-19 01:03:01', '1994-05-19 01:03:02')",
-        "(\\'1994-05-19 01:03:01\\', \\'1994-05-19 01:03:02\\')", 0),
-      ("col_timestamptz_bytedict", "('1994-05-19 01:03:01', '1994-05-19 01:03:02')",
-        "(\\'1994-05-19 01:03:01\\', \\'1994-05-19 01:03:02\\')", 0),
-      ("col_timestamptz_delta", "('1994-05-19 01:03:01', '1994-05-19 01:03:02')",
-        "(\\'1994-05-19 01:03:01\\', \\'1994-05-19 01:03:02\\')", 0),
-      ("col_timestamptz_delta32k", "('1994-05-19 01:03:01', '1994-05-19 01:03:02')",
-        "(\\'1994-05-19 01:03:01\\', \\'1994-05-19 01:03:02\\')", 0),
-      ("col_timestamptz_lzo", "('1994-05-19 01:03:01', '1994-05-19 01:03:02')",
-        "(\\'1994-05-19 01:03:01\\', \\'1994-05-19 01:03:02\\')", 0),
-      ("col_timestamptz_runlength", "('1994-05-19 01:03:01', '1994-05-19 01:03:02')",
-        "(\\'1994-05-19 01:03:01\\', \\'1994-05-19 01:03:02\\')", 0),
-      ("col_timestamptz_zstd", "('1994-05-19 01:03:01', '1994-05-19 01:03:02')",
-        "(\\'1994-05-19 01:03:01\\', \\'1994-05-19 01:03:02\\')", 0)
+      ("col_date_raw", d1, d2, 2),
+      ("col_date_bytedict", d1, d2, 0),
+      ("col_date_delta", d1, d2, 0),
+      ("col_date_delta32k", d1, d2, 0),
+      ("col_date_lzo", d1, d2, 0),
+      ("col_date_runlength", d1, d2, 3),
+      ("col_date_zstd", d1, d2, 0),
+      ("col_timestamp_raw", t1, t2, 1),
+      ("col_timestamp_bytedict", t1, t2, 0),
+      ("col_timestamp_delta", t1, t2, 0),
+      ("col_timestamp_delta32k", t1, t2, 0),
+      ("col_timestamp_lzo", t1, t2, 0),
+      ("col_timestamp_runlength", t1, t2, 0),
+      ("col_timestamp_zstd", t1, t2, 0),
+      ("col_timestamptz_raw", t1, t2, 0),
+      ("col_timestamptz_bytedict", t1, t2, 0),
+      ("col_timestamptz_delta", t1, t2, 0),
+      ("col_timestamptz_delta32k", t1, t2, 0),
+      ("col_timestamptz_lzo", t1, t2, 0),
+      ("col_timestamptz_runlength", t1, t2, 0),
+      ("col_timestamptz_zstd", t1, t2, 0)
     )
-    input.par.foreach( test_case => {
+    ParallelUtils.par(input).foreach( test_case => {
       val column_name = test_case._1.toUpperCase
-      val query_in = test_case._2
-      val expected_res = test_case._3
+      val dt1 = test_case._2
+      val dt2 = test_case._3
       val result_size = test_case._4
       checkAnswer(
-        sqlContext.sql(s"""SELECT count(*) FROM test_table where $column_name in $query_in"""),
+        sqlContext.sql(
+          s"""SELECT count(*) FROM test_table where $column_name in ('$dt1', '$dt2')"""),
         Seq(Row(result_size)))
 
       checkSqlStatement(
         s"""SELECT ( COUNT ( 1 ) ) AS "SQ_2_COL_0" FROM (
            |SELECT * FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" )
            |AS "SQ_0" WHERE CAST ( "SQ_0"."$column_name" AS VARCHAR )
-           |IN $expected_res ) AS "SQ_1" LIMIT 1""".stripMargin)
+           |IN (\\'$dt1\\', \\'$dt2\\') ) AS "SQ_1" LIMIT 1""".stripMargin,
+        s"""SELECT ( COUNT ( 1 ) ) AS "SQ_2_COL_0" FROM (
+           |SELECT * FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" )
+           |AS "SQ_0" WHERE "SQ_0"."$column_name" IN
+           |( DATEADD(day, 14740 , TO_DATE(\\'1970-01-01\\', \\'YYYY-MM-DD\\')) ,
+           |  DATEADD(day, 14741 , TO_DATE(\\'1970-01-01\\', \\'YYYY-MM-DD\\'))
+           | ) ) AS "SQ_1" LIMIT 1""".stripMargin,
+        s"""SELECT ( COUNT ( 1 ) ) AS "SQ_2_COL_0" FROM (
+           |SELECT * FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" )
+           |AS "SQ_0" WHERE "SQ_0"."$column_name" IN
+           |( \\'$dt1\\' ::TIMESTAMP , \\'$dt2\\' ::TIMESTAMP ) ) AS "SQ_1" LIMIT 1""".stripMargin
+      )
     })
   }
 
@@ -401,7 +400,7 @@ abstract class BooleanInOperatorCorrectnessSuite extends IntegrationPushdownSuit
       ("col_float8_runlength", "(-6.5868966897085, -1.3480701575018)", 0),
       ("col_float8_zstd", "(-6.5868966897085, -1.3480701575018)", 0)
     )
-    input.par.foreach( test_case => {
+    ParallelUtils.par(input).foreach( test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
       val result_size = test_case._3

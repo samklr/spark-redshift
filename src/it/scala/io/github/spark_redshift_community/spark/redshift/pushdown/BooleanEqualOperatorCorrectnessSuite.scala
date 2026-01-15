@@ -15,6 +15,7 @@
  */
 package io.github.spark_redshift_community.spark.redshift.pushdown.test
 
+import io.github.spark_redshift_community.spark.redshift.ParallelUtils
 import org.apache.spark.sql.Row
 
 abstract class BooleanEqualOperatorCorrectnessSuite extends IntegrationPushdownSuiteBase {
@@ -89,7 +90,7 @@ abstract class BooleanEqualOperatorCorrectnessSuite extends IntegrationPushdownS
       ("col_bigint_runlength", 100, 0),
       ("col_bigint_zstd", 100, 0)
     )
-    input.par.foreach( test_case => {
+    ParallelUtils.par(input).foreach( test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
       val result_size = test_case._3
@@ -121,7 +122,7 @@ abstract class BooleanEqualOperatorCorrectnessSuite extends IntegrationPushdownS
       ("col_decimal_18_18_runlength", "-1.230000000000000000", 0),
       ("col_decimal_18_18_zstd", "-1.230000000000000000", 0)
     )
-    input.par.foreach( test_case => {
+    ParallelUtils.par(input).foreach( test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
       val result_size = test_case._3
@@ -153,7 +154,7 @@ abstract class BooleanEqualOperatorCorrectnessSuite extends IntegrationPushdownS
       ("col_decimal_38_37_runlength", "0.7664120400000000000000000000000000001", 0),
       ("col_decimal_38_37_zstd", "0.7664120400000000000000000000000000001", 0)
     )
-    input.par.foreach( test_case => {
+    ParallelUtils.par(input).foreach( test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
       val result_size = test_case._3
@@ -221,7 +222,7 @@ abstract class BooleanEqualOperatorCorrectnessSuite extends IntegrationPushdownS
       ("col_varchar_2000_zstd", s"'$string255Char'", s"\\'$string255Char\\'", 0),
       ("col_varchar_max_zstd", s"'$string255Char'", s"\\'$string255Char\\'", 0)
     )
-    input.par.foreach( test_case => {
+    ParallelUtils.par(input).foreach( test_case => {
       val column_name = test_case._1.toUpperCase
       val query_in = test_case._2
       val expected_res = test_case._3
@@ -250,7 +251,7 @@ abstract class BooleanEqualOperatorCorrectnessSuite extends IntegrationPushdownS
       ("col_date_runlength", "'2010-05-11'", 3),
       ("col_date_zstd", "'2010-05-11'", 0)
     )
-    input.par.foreach( test_case => {
+    ParallelUtils.par(input).foreach( test_case => {
       val column_name = test_case._1.toUpperCase
       val query_in = test_case._2
       val result_size = test_case._3
@@ -286,7 +287,7 @@ abstract class BooleanEqualOperatorCorrectnessSuite extends IntegrationPushdownS
       ("col_timestamptz_runlength", "'1994-05-19 01:03:02'", 0),
       ("col_timestamptz_zstd", "'1994-05-19 01:03:02'", 0)
     )
-    input.par.foreach( test_case => {
+    ParallelUtils.par(input).foreach( test_case => {
       val column_name = test_case._1.toUpperCase
       val query_in = test_case._2
       val result_size = test_case._3
@@ -318,7 +319,7 @@ abstract class BooleanEqualOperatorCorrectnessSuite extends IntegrationPushdownS
       ("col_float8_runlength", -31.353153006228958, 1, -31.353153006228958, ""),
       ("col_float8_zstd", 0.008006913654249, 1, 0.008006913654249, "")
     )
-    input.par.foreach( test_case => {
+    ParallelUtils.par(input).foreach( test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
       val result_size = test_case._3

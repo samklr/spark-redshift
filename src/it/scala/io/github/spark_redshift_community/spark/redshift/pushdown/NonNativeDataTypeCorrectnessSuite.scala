@@ -15,9 +15,8 @@
  */
 package io.github.spark_redshift_community.spark.redshift.pushdown.test
 
+import io.github.spark_redshift_community.spark.redshift.ParallelUtils
 import org.apache.spark.sql.Row
-
-import java.sql.SQLException
 
 abstract class NonNativeDataTypeCorrectnessSuite extends IntegrationPushdownSuiteBase {
 
@@ -58,7 +57,7 @@ abstract class NonNativeDataTypeCorrectnessSuite extends IntegrationPushdownSuit
       (5, "[10001,10002,3333]"),
       (6, "{\"foo\":\"bar\",\"foobar\":{\"abc\":\"def\"}}")
     )
-    testCases.par.foreach(testCase => {
+    ParallelUtils.par(testCases).foreach(testCase => {
       val id = testCase._1
       val result = testCase._2
 
@@ -84,7 +83,7 @@ abstract class NonNativeDataTypeCorrectnessSuite extends IntegrationPushdownSuit
       "varbinary"
     )
 
-    testCases.par.foreach(columnType => {
+    ParallelUtils.par(testCases).foreach(columnType => {
       val tableName = s"${columnType}_not_supported$randomSuffix"
       try {
         redshiftWrapper.executeUpdate(conn, s"drop table if exists $tableName")

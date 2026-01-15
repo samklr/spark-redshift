@@ -16,9 +16,10 @@
 
 package io.github.spark_redshift_community.spark.redshift.pushdown.optimizers
 
+import io.github.spark_redshift_community.spark.redshift.pushdown.AggregateExtractor
 import org.apache.spark.sql.catalyst.expressions.{Alias, Attribute, AttributeMap, AttributeReference, AttributeSet, EqualNullSafe, EqualTo, Expression, NamedExpression, PredicateHelper, ScalarSubquery}
 import org.apache.spark.sql.catalyst.optimizer.PushLeftSemiLeftAntiThroughJoin.PushdownDirection
-import org.apache.spark.sql.catalyst.plans.logical.{Aggregate, Join, LogicalPlan, Project}
+import org.apache.spark.sql.catalyst.plans.logical.{Join, LogicalPlan, Project}
 import org.apache.spark.sql.catalyst.plans.{Inner, JoinType, LeftSemi}
 import org.apache.spark.sql.catalyst.trees.TreePattern.{AGGREGATE, LEFT_SEMI_OR_ANTI_JOIN}
 
@@ -29,7 +30,7 @@ private[pushdown] object LeftSemiAntiJoinOptimizations extends PredicateHelper {
       // The idea is that if we are grouping by all child output without any transformations,
       // it should be a distinct. An additional "No transformations" check is not necessary
       // due to implicit aggregateExpr == child.output check
-      case Aggregate(groupExpr, aggregateExpr, child) if groupExpr == child.output
+      case AggregateExtractor(_, groupExpr, aggregateExpr, child) if groupExpr == child.output
         && aggregateExpr == child.output => true
       case _ => false
     }
@@ -191,11 +192,11 @@ private[pushdown] object LeftSemiAntiJoinOptimizations extends PredicateHelper {
   def pullUpLeftSemiJoinOverProjectAndInnerJoin(plan: LogicalPlan): LogicalPlan = {
     val newPlan = plan.transformDownWithPruning(_.containsAllPatterns(LEFT_SEMI_OR_ANTI_JOIN,
       AGGREGATE)) {
-      case agg@Aggregate(_, _, project@Project(_, _: Join)) if isDistinctAggregate(agg)
-        && isPassThroughProjection(project.projectList, project.child) =>
-
-        val newChild = tryPullUpLeftSemiOrAnti(project)
-        if (newChild == project) agg else agg.copy(child = newChild)
+      case AggregateExtractor(aggregate, _, _, project@Project(_, _: Join))
+        if isDistinctAggregate(aggregate) &&
+          isPassThroughProjection(project.projectList, project.child) =>
+            val newChild = tryPullUpLeftSemiOrAnti(project)
+            if (newChild == project) aggregate else aggregate.copy(child = newChild)
     }
 
     newPlan
@@ -253,6 +254,7 @@ private[pushdown] object LeftSemiAntiJoinOptimizations extends PredicateHelper {
             return false
           }
         }
+      case _ => throw new MatchError("Unexpected missing match")
     }
     true
   }
@@ -345,6 +347,8 @@ private[pushdown] object LeftSemiAntiJoinOptimizations extends PredicateHelper {
             } else {
               j
             }
+
+          case _ => throw new MatchError("Unexpected missing match")
         }
       case other =>
         other

@@ -17,7 +17,6 @@
 package io.github.spark_redshift_community.spark.redshift.test
 
 import java.io.{DataOutputStream, File, FileOutputStream}
-
 import com.google.common.io.Files
 import io.github.spark_redshift_community.spark.redshift.RedshiftContext
 import io.github.spark_redshift_community.spark.redshift.RedshiftInputFormat
@@ -25,9 +24,10 @@ import io.github.spark_redshift_community.spark.redshift.RedshiftInputFormat._
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{Row, SQLContext}
+import org.apache.spark.sql.{Row, SparkSession}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funsuite.AnyFunSuite
+
 import scala.language.implicitConversions
 
 class RedshiftInputFormatSuite extends AnyFunSuite with BeforeAndAfterAll {
@@ -35,14 +35,19 @@ class RedshiftInputFormatSuite extends AnyFunSuite with BeforeAndAfterAll {
   import RedshiftInputFormatSuite._
 
   private var sc: SparkContext = _
+  private var sparkSession: SparkSession = _
 
   override def beforeAll(): Unit = {
     super.beforeAll()
     sc = new SparkContext("local", this.getClass.getName)
+    sparkSession =
+      SparkSession.builder().master("local").appName("RedshiftInputFormatSuite").getOrCreate()
   }
 
   override def afterAll(): Unit = {
     sc.stop()
+    sc = null
+    sparkSession = null
     super.afterAll()
   }
 
@@ -128,7 +133,6 @@ class RedshiftInputFormatSuite extends AnyFunSuite with BeforeAndAfterAll {
       val escaped = escape(testRecords.map(_.map(_.toString)), DEFAULT_DELIMITER)
       writeToFile(escaped, new File(dir, "part-00000"))
 
-      val sqlContext = new SQLContext(sc)
       val expectedSchema = StructType(Seq(
         StructField("name", StringType, nullable = true),
         StructField("state", StringType, nullable = true),
@@ -137,7 +141,7 @@ class RedshiftInputFormatSuite extends AnyFunSuite with BeforeAndAfterAll {
         StructField("big_score", LongType, nullable = true),
         StructField("some_long", LongType, nullable = true)))
 
-      val df = sqlContext.redshiftFile(dir.toString, expectedSchema)
+      val df = sparkSession.sqlContext.redshiftFile(dir.toString, expectedSchema)
       assert(df.schema === expectedSchema)
 
       val parsed = df.rdd.map {

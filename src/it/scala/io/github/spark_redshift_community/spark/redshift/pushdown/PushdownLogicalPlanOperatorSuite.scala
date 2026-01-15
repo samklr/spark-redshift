@@ -17,6 +17,7 @@ package io.github.spark_redshift_community.spark.redshift.pushdown.test
 
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.{IntegerType, MapType, StringType, StructField, StructType}
+import io.github.spark_redshift_community.spark.redshift.ParallelUtils
 
 import java.sql.{Date, Timestamp}
 
@@ -111,7 +112,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
         Row(Timestamp.valueOf("2015-07-03 12:34:56")),
         Row(Timestamp.valueOf("2015-07-03 12:34:56"))))
     )
-    input.par.foreach(test_case => {
+    ParallelUtils.par(input).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -154,7 +155,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
         Row(Timestamp.valueOf("2015-07-02 00:00:00")),
         Row(Timestamp.valueOf("2015-07-03 12:34:56"))))
     )
-    input.par.foreach(test_case => {
+    ParallelUtils.par(input).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -200,7 +201,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
         Row(Timestamp.valueOf("2015-07-03 12:34:56")),
         Row(Timestamp.valueOf("2015-07-03 12:34:56"))))
     )
-    input.par.foreach(test_case => {
+    ParallelUtils.par(input).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -275,7 +276,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
       ("TESTTIMESTAMP", testTimestampSeq)
     )
 
-    input.par.foreach { case (column_name, expected_res) =>
+    ParallelUtils.par(input).foreach { case (column_name, expected_res) =>
       val df = sqlContext.sql(
         s"""select test_table_2.${column_name}, test_table.${column_name}
            |FROM test_table_2 cross JOIN test_table""".stripMargin)
@@ -343,7 +344,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
       ("TESTTIMESTAMP", testTimestampSeq)
     )
 
-    input.par.foreach { case (column_name, expected_res) =>
+    ParallelUtils.par(input).foreach { case (column_name, expected_res) =>
       val df = sqlContext.sql(
         s"""select test_table_2.${column_name}, test_table.${column_name}
            |FROM test_table_2, test_table""".stripMargin)
@@ -408,7 +409,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
         Row(Timestamp.valueOf("2015-07-03 12:34:56")),
         Row(Timestamp.valueOf("2016-07-07 07:07:07"))))
     )
-    input.par.foreach(test_case => {
+    ParallelUtils.par(input).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -453,7 +454,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
         Row(Timestamp.valueOf("2015-07-03 12:34:56")),
         Row(Timestamp.valueOf("2015-07-03 12:34:56"))))
     )
-    input.par.foreach(test_case => {
+    ParallelUtils.par(input).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -506,7 +507,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
         Row(Timestamp.valueOf("2015-07-03 12:34:56")),
         Row(Timestamp.valueOf("2016-07-07 07:07:07"))))
     )
-    input.par.foreach(test_case => {
+    ParallelUtils.par(input).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -539,6 +540,9 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
     Seq(Row(-1234152.12312498), Row(0.0), Row(0.0), Row(1234152.12312498)),
     s"""SELECT ( "SQ_1"."TESTDOUBLE" ) AS "SQ_2_COL_0" FROM ( SELECT * FROM (
        | SELECT * FROM $test_table_2 AS "RCQ_ALIAS" ) AS "SQ_0"
+       | WHERE ( "SQ_0"."TESTDOUBLE" IS NOT NULL ) ) AS "SQ_1"""".stripMargin,
+  s"""SELECT ( "SQ_1"."TESTDOUBLE" ) AS "SQ_2_COL_0" FROM ( SELECT * FROM (
+       | SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0"
        | WHERE ( "SQ_0"."TESTDOUBLE" IS NOT NULL ) ) AS "SQ_1"""".stripMargin
   )
 
@@ -549,6 +553,9 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
     Seq(Row(-1.0), Row(0.0)),
     s"""SELECT ( "SQ_1"."TESTFLOAT" ) AS "SQ_2_COL_0" FROM ( SELECT * FROM (
        | SELECT * FROM $test_table_2 AS "RCQ_ALIAS" ) AS "SQ_0"
+       | WHERE ( "SQ_0"."TESTFLOAT" IS NOT NULL ) ) AS "SQ_1"""".stripMargin,
+  s"""SELECT ( "SQ_1"."TESTFLOAT" ) AS "SQ_2_COL_0" FROM ( SELECT * FROM (
+       | SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0"
        | WHERE ( "SQ_0"."TESTFLOAT" IS NOT NULL ) ) AS "SQ_1"""".stripMargin
   )
 
@@ -928,7 +935,10 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
     Seq(Row(0.0), Row(0.0)),
     s"""SELECT ( "SQ_1"."TESTFLOAT" ) AS "SQ_2_COL_0" FROM ( SELECT * FROM (
        | SELECT * FROM $test_table_2 AS "RCQ_ALIAS" ) AS "SQ_0"
-       | WHERE ( "SQ_0"."TESTFLOAT" IS NOT NULL ) ) AS "SQ_1"""".stripMargin
+       | WHERE ( "SQ_0"."TESTFLOAT" IS NOT NULL ) ) AS "SQ_1"""".stripMargin,
+    s"""SELECT ( "SQ_1"."TESTDOUBLE" ) AS "SQ_2_COL_0" FROM ( SELECT * FROM (
+       | SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0"
+       | WHERE ( "SQ_0"."TESTDOUBLE" IS NOT NULL ) ) AS "SQ_1"""".stripMargin
   )
 
   val testJoin12: TestCase = TestCase(
@@ -938,7 +948,9 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
       Row(0.0.toFloat), Row(2.0.toFloat), Row(5.0.toFloat), Row(55.12.toFloat),
       Row(100.0.toFloat)),
     s"""SELECT ( "SQ_0"."TESTFLOAT" ) AS "SQ_1_COL_0" FROM ( SELECT * FROM
-       | $test_table_2 AS "RCQ_ALIAS" ) AS "SQ_0"""".stripMargin
+       | $test_table_2 AS "RCQ_ALIAS" ) AS "SQ_0"""".stripMargin,
+    s"""SELECT ( "SQ_0"."TESTDOUBLE" ) AS "SQ_1_COL_0" FROM ( SELECT * FROM
+       | $test_table AS "RCQ_ALIAS" ) AS "SQ_0"""".stripMargin
   )
 
   val testJoin13: TestCase = TestCase(
@@ -947,7 +959,13 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
     Seq(Row(null), Row(null), Row(null), Row(0.0), Row(0.0)),
     s"""SELECT ( "SQ_1"."TESTFLOAT" ) AS "SQ_2_COL_0" FROM ( SELECT * FROM (
        | SELECT * FROM $test_table_2 AS "RCQ_ALIAS" ) AS "SQ_0"
-       | WHERE ( "SQ_0"."TESTFLOAT" IS NOT NULL ) ) AS "SQ_1"""".stripMargin
+       | WHERE ( "SQ_0"."TESTFLOAT" IS NOT NULL ) ) AS "SQ_1"""".stripMargin,
+    s"""SELECT ( "SQ_1"."TESTDOUBLE" ) AS "SQ_2_COL_0" FROM ( SELECT * FROM (
+       | SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0"
+       | WHERE ( "SQ_0"."TESTFLOAT" IS NOT NULL ) ) AS "SQ_1"""".stripMargin,
+    s"""SELECT ( "SQ_0"."TESTDOUBLE" ) AS "SQ_1_COL_0" FROM (
+       | SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0"""".stripMargin
+
   )
 
   val testJoin14: TestCase = TestCase(
@@ -956,7 +974,10 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
     Seq(Row(null), Row(-1.0.toFloat), Row(0.0.toFloat), Row(0.0.toFloat), Row(2.0.toFloat),
       Row(5.0.toFloat), Row(55.12.toFloat), Row(100.0.toFloat)),
     s"""SELECT ( "SQ_0"."TESTFLOAT" ) AS "SQ_1_COL_0" FROM ( SELECT * FROM
-       | $test_table_2 AS "RCQ_ALIAS" ) AS "SQ_0"""".stripMargin
+       | $test_table_2 AS "RCQ_ALIAS" ) AS "SQ_0"""".stripMargin,
+    s"""SELECT ( "SQ_1"."TESTDOUBLE" ) AS "SQ_2_COL_0" FROM ( SELECT * FROM
+     | ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0"
+     | WHERE ( "SQ_0"."TESTDOUBLE" IS NOT NULL ) ) AS "SQ_1"""".stripMargin
   )
 
   test("Test JOIN logical plan operator with different column type") {
@@ -998,7 +1019,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
         Row(Timestamp.valueOf("2015-07-03 12:34:56")),
         Row(Timestamp.valueOf("2016-07-07 07:07:07"))))
     )
-    input.par.foreach(test_case => {
+    ParallelUtils.par(input).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -1046,7 +1067,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
         Row(Timestamp.valueOf("2015-07-03 12:34:56")),
         Row(Timestamp.valueOf("2016-07-07 07:07:07"))))
     )
-    input.par.foreach(test_case => {
+    ParallelUtils.par(input).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -1108,7 +1129,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
         Row(Timestamp.valueOf("2015-07-03 12:34:56")),
         Row(Timestamp.valueOf("2016-07-07 07:07:07"))))
     )
-    input.par.foreach(test_case => {
+    ParallelUtils.par(input).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -1283,7 +1304,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
       ("teststring", Seq(Row("_____"), Row("acbdef"))),
       ("testtimestamp", Seq(Row(Timestamp.valueOf("2016-07-07 07:07:07"))))
     )
-    input.par.foreach(test_case => {
+    ParallelUtils.par(input).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -1295,6 +1316,9 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
         expected_res)
 
       checkSqlStatement(
+        s"""SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0"
+           | FROM ( SELECT * FROM $test_table_2 AS "RCQ_ALIAS" ) AS "SQ_0"
+           | """.stripMargin,
         s"""SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0"
            | FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0"
            | """.stripMargin)
@@ -1318,7 +1342,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
       ("teststring", Seq(Row("_____"), Row("acbdef"))),
       ("testtimestamp", Seq(Row(Timestamp.valueOf("2016-07-07 07:07:07"))))
     )
-    input.par.foreach(test_case => {
+    ParallelUtils.par(input).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -1331,6 +1355,9 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
 
       checkSqlStatement(
         s"""SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0"
+           | FROM ( SELECT * FROM $test_table_2 AS "RCQ_ALIAS" ) AS "SQ_0"
+           | """.stripMargin,
+      s"""SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0"
            | FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0"
            | """.stripMargin)
     })
@@ -1350,7 +1377,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
       ("teststring", Seq(Row("_____"), Row("acbdef"))),
       ("testtimestamp", Seq(Row(Timestamp.valueOf("2016-07-07 07:07:07"))))
     )
-    input.par.foreach(test_case => {
+    ParallelUtils.par(input).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -1381,7 +1408,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
               Row(100.0.toFloat))),
     )
 
-    decimalInput.par.foreach(test_case => {
+    ParallelUtils.par(decimalInput).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -1393,6 +1420,10 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
         expected_res)
 
       checkSqlStatement(
+        s"""SELECT ( "SQ_1"."SQ_1_COL_0" ) AS "SQ_2_COL_0" FROM
+           | ( SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0" FROM
+           | ( SELECT * FROM $test_table_2 AS "RCQ_ALIAS" ) AS "SQ_0" )
+           | AS "SQ_1" GROUP BY "SQ_1"."SQ_1_COL_0"""".stripMargin,
         s"""SELECT ( "SQ_1"."SQ_1_COL_0" ) AS "SQ_2_COL_0" FROM
            | ( SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0" FROM
            | ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0" )
@@ -1413,7 +1444,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
       ("teststring", Seq(Row("ggwp"))),
       ("testtimestamp", Seq(Row(Timestamp.valueOf("2024-07-01 00:00:00.001"))))
     )
-    input.par.foreach(test_case => {
+    ParallelUtils.par(input).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -1450,19 +1481,29 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
     )
 
     // no pushdown for decimals
-    decimalInput.par.foreach(test_case => {
+    ParallelUtils.par(decimalInput).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
       checkAnswer(
         sqlContext.sql(
           s"""SELECT DISTINCT test_table_3.$column_name FROM test_table_3 EXCEPT
-             | SELECT DISTINCT test_table_2.$column_name FROM test_table_2 EXCEPT
-             | SELECT DISTINCT test_table.$column_name FROM test_table
-             | ORDER BY 1""".stripMargin),
+            | SELECT DISTINCT test_table_2.$column_name FROM test_table_2 EXCEPT
+            | SELECT DISTINCT test_table.$column_name FROM test_table
+            | ORDER BY 1""".stripMargin),
         expected_res)
 
       checkSqlStatement(
+        s"""SELECT ( "SQ_1"."SQ_1_COL_0" ) AS "SQ_2_COL_0" FROM
+           | ( SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0" FROM
+           | ( SELECT * FROM $test_table_3 AS "RCQ_ALIAS" ) AS
+           | "SQ_0" ) AS "SQ_1" GROUP BY "SQ_1"."SQ_1_COL_0"
+           | """.stripMargin,
+        s"""SELECT ( "SQ_1"."SQ_1_COL_0" ) AS "SQ_2_COL_0" FROM
+           | ( SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0" FROM
+           | ( SELECT * FROM $test_table_2 AS "RCQ_ALIAS" ) AS
+           | "SQ_0" ) AS "SQ_1" GROUP BY "SQ_1"."SQ_1_COL_0"
+           | """.stripMargin,
         s"""SELECT ( "SQ_1"."SQ_1_COL_0" ) AS "SQ_2_COL_0" FROM
            | ( SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0" FROM
            | ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS
@@ -1488,7 +1529,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
       ("testtimestamp", Seq(Row(Timestamp.valueOf("2015-07-03 12:34:56")),
         Row(Timestamp.valueOf("2016-07-07 07:07:07"))))
     )
-    input.par.foreach(test_case => {
+    ParallelUtils.par(input).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -1519,6 +1560,8 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
       | SELECT test_table.testint FROM test_table
       | ORDER BY 1""".stripMargin,
     Seq(Row(0), Row(1), Row(2), Row(3)),
+    s"""SELECT ( CAST ( "SQ_0"."TESTBYTE" AS INTEGER ) ) AS "SQ_1_COL_0"
+      | FROM ( SELECT * FROM $test_table_2 AS "RCQ_ALIAS" ) AS "SQ_0"""".stripMargin,
     s"""SELECT ( "SQ_0"."TESTINT" ) AS "SQ_1_COL_0"
        | FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0"
        | """.stripMargin
@@ -1529,6 +1572,8 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
       | SELECT test_table.testint FROM test_table
       | ORDER BY 1""".stripMargin,
     Seq(Row(0), Row(1), Row(2), Row(3)),
+    s"""SELECT ( CAST ( "SQ_0"."TESTBYTE" AS INTEGER ) ) AS "SQ_1_COL_0"
+       | FROM ( SELECT * FROM $test_table_2 AS "RCQ_ALIAS" ) AS "SQ_0"""".stripMargin,
     s"""SELECT ( "SQ_0"."TESTINT" ) AS "SQ_1_COL_0"
        | FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0"
        | """.stripMargin
@@ -1558,6 +1603,8 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
       | ORDER BY 1""".stripMargin,
     Seq(Row(-1.0.toFloat), Row(2.0.toFloat), Row(5.0.toFloat), Row(55.119998931884766),
       Row(100.0.toFloat)),
+    s"""SELECT ( CAST ( "SQ_0"."TESTFLOAT" AS FLOAT8 ) ) AS "SQ_1_COL_0"
+       | FROM ( SELECT * FROM $test_table_2 AS "RCQ_ALIAS" ) AS "SQ_0"""".stripMargin,
     s"""SELECT ( "SQ_0"."TESTDOUBLE" ) AS "SQ_1_COL_0"
        | FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0"
        | """.stripMargin
@@ -1569,6 +1616,8 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
       | ORDER BY 1""".stripMargin,
     Seq(Row(-1.0.toFloat), Row(2.0.toFloat), Row(5.0.toFloat), Row(55.119998931884766),
       Row(100.0.toFloat)),
+    s"""SELECT ( CAST ( "SQ_0"."TESTFLOAT" AS FLOAT8 ) ) AS "SQ_1_COL_0"
+      | FROM ( SELECT * FROM $test_table_2 AS "RCQ_ALIAS" ) AS "SQ_0"""".stripMargin,
     s"""SELECT ( "SQ_0"."TESTDOUBLE" ) AS "SQ_1_COL_0"
        | FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0"
        | """.stripMargin
@@ -1619,7 +1668,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
       ("teststring", Seq(Row("_____"), Row("acbdef"))),
       ("testtimestamp", Seq(Row(Timestamp.valueOf("2016-07-07 07:07:07"))))
     )
-    input.par.foreach(test_case => {
+    ParallelUtils.par(input).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -1632,6 +1681,9 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
 
       checkSqlStatement(
         s"""SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0"
+           | FROM ( SELECT * FROM $test_table_2 AS "RCQ_ALIAS" ) AS "SQ_0"
+           | """.stripMargin,
+        s"""SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0"
            | FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0"
            | """.stripMargin)
     })
@@ -1641,20 +1693,20 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
   test("Test MINUS DISTINCT logical plan operator") {
     // "Column name" and result set
     val input = List(
-      ("testbyte", Seq(Row(2), Row(3), Row(42))),
-      ("testbool", Seq()),
-      ("testdate", Seq(Row(Date.valueOf("2015-07-04")), Row(Date.valueOf("2015-07-05")))),
-      ("testdouble", Seq(Row(1.1), Row(2.2), Row(12345.12345678))),
-      ("testfloat", Seq(Row(2.0.toFloat), Row(5.0.toFloat), Row(55.12.toFloat),
-        Row(100.0.toFloat))),
-      ("testint", Seq(Row(45), Row(216), Row(365))),
-      ("testlong", Seq(Row(54321), Row(1239012341823715L),
-        Row(1239012341823716L), Row(1239012341823717L), Row(1239012341823718L))),
-      ("testshort", Seq(Row(56))),
-      ("teststring", Seq(Row("_____"), Row("acbdef"))),
-      ("testtimestamp", Seq(Row(Timestamp.valueOf("2016-07-07 07:07:07"))))
+     ("testbyte", Seq(Row(2), Row(3), Row(42))),
+     ("testbool", Seq()),
+     ("testdate", Seq(Row(Date.valueOf("2015-07-04")), Row(Date.valueOf("2015-07-05")))),
+     ("testdouble", Seq(Row(1.1), Row(2.2), Row(12345.12345678))),
+     ("testfloat", Seq(Row(2.0.toFloat), Row(5.0.toFloat), Row(55.12.toFloat),
+       Row(100.0.toFloat))),
+     ("testint", Seq(Row(45), Row(216), Row(365))),
+     ("testlong", Seq(Row(54321), Row(1239012341823715L),
+       Row(1239012341823716L), Row(1239012341823717L), Row(1239012341823718L))),
+     ("testshort", Seq(Row(56))),
+     ("teststring", Seq(Row("_____"), Row("acbdef"))),
+     ("testtimestamp", Seq(Row(Timestamp.valueOf("2016-07-07 07:07:07"))))
     )
-    input.par.foreach(test_case => {
+    ParallelUtils.par(input).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -1666,6 +1718,8 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
         expected_res)
 
       checkSqlStatement(
+        s"""SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0"
+           | FROM ( SELECT * FROM $test_table_2 AS "RCQ_ALIAS" ) AS "SQ_0"""".stripMargin,
         s"""SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0"
            | FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0"
            | """.stripMargin)
@@ -1689,7 +1743,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
       ("testtimestamp", Seq(Row(Timestamp.valueOf("2015-07-03 12:34:56")),
         Row(Timestamp.valueOf("2016-07-07 07:07:07"))))
     )
-    input.par.foreach(test_case => {
+    ParallelUtils.par(input).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -1720,7 +1774,10 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
       | SELECT test_table.testint FROM test_table
       | ORDER BY 1""".stripMargin,
     Seq(Row(0), Row(1), Row(2), Row(3)),
-    s"""SELECT ( "SQ_0"."TESTINT" ) AS "SQ_1_COL_0"
+    s"""SELECT ( CAST ( "SQ_0"."TESTBYTE" AS INTEGER ) ) AS "SQ_1_COL_0"
+       | FROM ( SELECT * FROM $test_table_2 AS "RCQ_ALIAS" ) AS "SQ_0
+       | """".stripMargin,
+  s"""SELECT ( "SQ_0"."TESTINT" ) AS "SQ_1_COL_0"
        | FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0"
        | """.stripMargin
   )
@@ -1730,6 +1787,8 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
       | SELECT test_table.testint FROM test_table
       | ORDER BY 1""".stripMargin,
     Seq(Row(0), Row(1), Row(2), Row(3)),
+    s"""SELECT ( CAST ( "SQ_0"."TESTBYTE" AS INTEGER ) ) AS "SQ_1_COL_0"
+       | FROM ( SELECT * FROM $test_table_2 AS "RCQ_ALIAS" ) AS "SQ_0"""".stripMargin,
     s"""SELECT ( "SQ_0"."TESTINT" ) AS "SQ_1_COL_0"
        | FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0"
        | """.stripMargin
@@ -1759,6 +1818,8 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
       | ORDER BY 1""".stripMargin,
     Seq(Row(-1.0.toFloat), Row(2.0.toFloat), Row(5.0.toFloat), Row(55.119998931884766),
       Row(100.0.toFloat)),
+    s"""SELECT ( CAST ( "SQ_0"."TESTFLOAT" AS FLOAT8 ) ) AS "SQ_1_COL_0"
+       | FROM ( SELECT * FROM $test_table_2 AS "RCQ_ALIAS" ) AS "SQ_0"""".stripMargin,
     s"""SELECT ( "SQ_0"."TESTDOUBLE" ) AS "SQ_1_COL_0"
        | FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0"
        | """.stripMargin
@@ -1770,6 +1831,8 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
       | ORDER BY 1""".stripMargin,
     Seq(Row(-1.0.toFloat), Row(2.0.toFloat), Row(5.0.toFloat), Row(55.119998931884766),
       Row(100.0.toFloat)),
+    s"""SELECT ( CAST ( "SQ_0"."TESTFLOAT" AS FLOAT8 ) ) AS "SQ_1_COL_0"
+       | FROM ( SELECT * FROM $test_table_2 AS "RCQ_ALIAS" ) AS "SQ_0"""".stripMargin,
     s"""SELECT ( "SQ_0"."TESTDOUBLE" ) AS "SQ_1_COL_0"
        | FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0"
        | """.stripMargin
@@ -1820,7 +1883,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
         Row(Timestamp.valueOf("2015-07-02 00:00:00")),
         Row(Timestamp.valueOf("2015-07-03 12:34:56"))))
     )
-    input.par.foreach(test_case => {
+    ParallelUtils.par(input).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -1850,7 +1913,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
     )
 
     // No pushdown for decimals
-    decimalInput.par.foreach(test_case => {
+    ParallelUtils.par(decimalInput).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -1862,6 +1925,9 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
         expected_res)
 
       checkSqlStatement(
+        s"""SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0"
+           | FROM ( SELECT * FROM $test_table_2 AS "RCQ_ALIAS" ) AS "SQ_0"
+           | """.stripMargin,
           s"""SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0"
              | FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0"
              | """.stripMargin)
@@ -1886,7 +1952,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
         Row(Timestamp.valueOf("2015-07-02 00:00:00")),
         Row(Timestamp.valueOf("2015-07-03 12:34:56"))))
     )
-    input.par.foreach(test_case => {
+    ParallelUtils.par(input).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -1916,7 +1982,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
     )
 
     // No pushdown for decimals
-    decimalInput.par.foreach(test_case => {
+    ParallelUtils.par(decimalInput).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -1928,6 +1994,9 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
         expected_res)
 
       checkSqlStatement(
+        s"""SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0"
+           | FROM ( SELECT * FROM $test_table_2 AS "RCQ_ALIAS" ) AS "SQ_0"
+           | """.stripMargin,
         s"""SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0"
            | FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0"
            | """.stripMargin)
@@ -1951,7 +2020,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
         Row(Timestamp.valueOf("2015-07-02 00:00:00")),
         Row(Timestamp.valueOf("2015-07-03 12:34:56"))))
     )
-    input.par.foreach(test_case => {
+    ParallelUtils.par(input).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -1983,7 +2052,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
     )
 
     // No pushdown for decimals
-    decimalInput.par.foreach(test_case => {
+    ParallelUtils.par(decimalInput).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -1995,6 +2064,10 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
         expected_res)
 
       checkSqlStatement(
+        s"""SELECT ( "SQ_1"."SQ_1_COL_0" ) AS "SQ_2_COL_0" FROM
+           | ( SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0" FROM
+           | ( SELECT * FROM $test_table_2 AS "RCQ_ALIAS" ) AS "SQ_0" )
+           | AS "SQ_1" GROUP BY "SQ_1"."SQ_1_COL_0"""".stripMargin,
         s"""SELECT ( "SQ_1"."SQ_1_COL_0" ) AS "SQ_2_COL_0" FROM
            | ( SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0" FROM
            | ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0" )
@@ -2021,7 +2094,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
         Row(Timestamp.valueOf("2015-07-02 00:00:00")),
         Row(Timestamp.valueOf("2015-07-03 12:34:56"))))
     )
-    input.par.foreach(test_case => {
+    ParallelUtils.par(input).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -2051,7 +2124,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
     )
 
     // No pushdown for decimals
-    decimalInput.par.foreach(test_case => {
+    ParallelUtils.par(decimalInput).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -2063,6 +2136,10 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
         expected_res)
 
       checkSqlStatement(
+        s"""SELECT ( "SQ_1"."SQ_1_COL_0" ) AS "SQ_2_COL_0" FROM
+           | ( SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0" FROM
+           | ( SELECT * FROM $test_table_2 AS "RCQ_ALIAS" ) AS "SQ_0" )
+           | AS "SQ_1" GROUP BY "SQ_1"."SQ_1_COL_0"""".stripMargin,
         s"""SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0" FROM
            | ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0"
            | """.stripMargin)
@@ -2086,7 +2163,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
         Row(Timestamp.valueOf("2015-07-02 00:00:00")),
         Row(Timestamp.valueOf("2015-07-03 12:34:56"))))
     )
-    input.par.foreach(test_case => {
+    ParallelUtils.par(input).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -2121,7 +2198,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
     )
 
     // No pushdown for decimals
-    decimalInput.par.foreach(test_case => {
+    ParallelUtils.par(decimalInput).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -2134,6 +2211,12 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
         expected_res)
 
       checkSqlStatement(
+        s"""SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0" FROM
+           | ( SELECT * FROM $test_table_3 AS "RCQ_ALIAS" ) AS "SQ_0"
+           | """.stripMargin,
+      s"""SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0" FROM
+         | ( SELECT * FROM $test_table_2 AS "RCQ_ALIAS" ) AS "SQ_0"
+         | """.stripMargin,
         s"""SELECT ( "SQ_0"."$column_name" ) AS "SQ_1_COL_0" FROM
            | ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0"
            | """.stripMargin)
@@ -2161,7 +2244,7 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
         Row(Timestamp.valueOf("2015-07-02 00:00:00")),
         Row(Timestamp.valueOf("2015-07-03 12:34:56"))))
     )
-    input.par.foreach(test_case => {
+    ParallelUtils.par(input).foreach(test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
 
@@ -2260,6 +2343,8 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
       | SELECT test_table.testdouble FROM test_table
       | ORDER BY 1""".stripMargin,
     Seq(Row(null), Row(0.0.toFloat)),
+    s"""SELECT ( CAST ( "SQ_0"."TESTFLOAT" AS FLOAT8 ) ) AS "SQ_1_COL_0"
+       | FROM ( SELECT * FROM $test_table_2 AS "RCQ_ALIAS" ) AS "SQ_0"""".stripMargin,
     s"""SELECT ( "SQ_0"."TESTDOUBLE" ) AS "SQ_1_COL_0"
        | FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0"
        | """.stripMargin
@@ -2270,6 +2355,8 @@ abstract class PushdownLogicalPlanOperatorSuite extends IntegrationPushdownSuite
       | SELECT test_table.testdouble FROM test_table
       | ORDER BY 1""".stripMargin,
     Seq(Row(null), Row(0.0.toFloat)),
+    s"""SELECT ( CAST ( "SQ_0"."TESTFLOAT" AS FLOAT8 ) ) AS "SQ_1_COL_0"
+      | FROM ( SELECT * FROM $test_table_2 AS "RCQ_ALIAS" ) AS "SQ_0"""".stripMargin,
     s"""SELECT ( "SQ_0"."TESTDOUBLE" ) AS "SQ_1_COL_0"
        | FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" ) AS "SQ_0"
        | """.stripMargin

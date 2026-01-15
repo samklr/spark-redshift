@@ -365,12 +365,10 @@ class UpdateCorrectnessSuite extends IntegrationPushdownSuiteBase {
 
       val superSchema = StructType(StructField("city", StringType)::Nil)
       val dataframeSchema = StructType(StructField("address", superSchema)::Nil)
-      val exception = intercept[AnalysisException] {
+      val msg = intercept[AnalysisException] {
         sqlContext.sql(s"update $tableName set address.city = 'Boston' where id = 1")
-      }
-
-      assert(exception.getMessage.contains("[INVALID_EXTRACT_BASE_FIELD_TYPE]") ||
-      exception.getMessage.contains("need struct type but got string"))
+      }.getMessage()
+      assert(msg.contains("Need a complex type") || msg.contains("need struct type"))
 
       checkAnswer(
         read.schema(dataframeSchema).option("dbtable", tableName).load().select("address.city"),

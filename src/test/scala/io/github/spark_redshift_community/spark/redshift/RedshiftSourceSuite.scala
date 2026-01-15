@@ -56,6 +56,8 @@ class RedshiftSourceSuite
    */
   private var sc: SparkContext = _
 
+  private var sparkSession: SparkSession = _
+
   private var testSqlContext: SQLContext = _
 
   private var expectedDataDF: DataFrame = _
@@ -94,12 +96,14 @@ class RedshiftSourceSuite
       classOf[DirectMapreduceOutputCommitter].getName)
     sc.hadoopConfiguration.set("mapred.output.committer.class",
       classOf[DirectMapredOutputCommitter].getName)
+    sparkSession =
+      SparkSession.builder().master("local").appName("RedshiftSourceSuite").getOrCreate()
   }
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     s3FileSystem = FileSystem.get(new URI(s3TempDir), sc.hadoopConfiguration)
-    testSqlContext = new SQLContext(sc)
+    testSqlContext = sparkSession.sqlContext
     testSqlContext.sql("RESET spark.datasource.redshift.community.trace_id")
     expectedDataDF =
       testSqlContext.createDataFrame(sc.parallelize(TestUtils.expectedData), TestUtils.testSchema)
@@ -171,6 +175,8 @@ class RedshiftSourceSuite
 
   override def afterAll(): Unit = {
     sc.stop()
+    sc = null
+    sparkSession = null
     super.afterAll()
   }
 

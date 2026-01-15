@@ -23,7 +23,7 @@ import io.github.spark_redshift_community.spark.redshift.{BuildInfo, Parameters}
 import java.net.URI
 import io.github.spark_redshift_community.spark.redshift.Parameters.{MergedParameters, PARAM_HOST_CONNECTOR}
 import org.apache.spark.SparkContext
-import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.{SparkSession, SQLContext}
 import org.mockito.ArgumentMatchers.{any, argThat}
 import org.mockito.{ArgumentCaptor, Mockito}
 import org.mockito.Mockito.{never, verify, when}
@@ -44,7 +44,7 @@ import java.util.Properties
 class UtilsSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll with BeforeAndAfterEach {
 
   private var sc: SparkContext = _
-  private var sqlContext: SQLContext = _
+  private var sparkSession: SparkSession = _
 
   private val fakeCredentials: Map[String, String] =
     Map[String, String]("forward_spark_s3_credentials" -> "true",
@@ -58,18 +58,18 @@ class UtilsSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll with B
       
   override def beforeAll(): Unit = {
     sc = new SparkContext("local", "UtilsSuite")
-    sqlContext = new SQLContext(sc)
+    sparkSession = SparkSession.builder().master("local").appName("UtilsSuite").getOrCreate()
   }
 
   override def afterAll(): Unit = {
     sc.stop()
     sc = null
-    sqlContext = null
+    sparkSession = null
   }
 
   private def resetAll(): Unit = {
-    sqlContext.sparkSession.sql(s"reset ${Utils.CONNECTOR_LABEL_SPARK_CONF}")
-    sqlContext.sparkSession.sql(s"reset ${Utils.CONNECTOR_TRACE_ID_SPARK_CONF}")
+    sparkSession.sql(s"reset ${Utils.CONNECTOR_LABEL_SPARK_CONF}")
+    sparkSession.sql(s"reset ${Utils.CONNECTOR_TRACE_ID_SPARK_CONF}")
     unsetEnv(Utils.CONNECTOR_SERVICE_NAME_ENV_VAR)
     unsetEnv(Utils.CONNECTOR_TRACE_ID_ENV_VAR)
   }
@@ -383,7 +383,7 @@ class UtilsSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll with B
     val expectedService = "a" * 10
     val expectedString = s""""svc":"$expectedService""""
     setEnv(Utils.CONNECTOR_SERVICE_NAME_ENV_VAR, longString)
-    val actualQueryGroup = Utils.queryGroupInfo(Utils.Read, params, sqlContext)
+    val actualQueryGroup = Utils.queryGroupInfo(Utils.Read, params, sparkSession.sqlContext)
     assert(actualQueryGroup.contains(expectedString))
   }
 
@@ -392,7 +392,7 @@ class UtilsSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll with B
     val expectedHost = "a" * 10
     val expectedString = s""""hst":"$expectedHost""""
     val params = MergedParameters(fakeCredentials + (PARAM_HOST_CONNECTOR -> longString))
-    val actualQueryGroup = Utils.queryGroupInfo(Utils.Read, params, sqlContext)
+    val actualQueryGroup = Utils.queryGroupInfo(Utils.Read, params, sparkSession.sqlContext)
     assert(actualQueryGroup.contains(expectedString))
   }
 
@@ -401,7 +401,7 @@ class UtilsSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll with B
     val expectedLabel = "a" * 100
     val expectedString = s""""lbl":"$expectedLabel""""
     val params = MergedParameters(fakeCredentials + ("label" -> longString))
-    val actualQueryGroup = Utils.queryGroupInfo(Utils.Read, params, sqlContext)
+    val actualQueryGroup = Utils.queryGroupInfo(Utils.Read, params, sparkSession.sqlContext)
     assert(actualQueryGroup.contains(expectedString))
   }
 
@@ -410,9 +410,9 @@ class UtilsSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll with B
     val longString = ("a" * 100) + ("b" * 100)
     val expectedLabel = "a" * 100
     val expectedString = s""""lbl":"$expectedLabel""""
-    sqlContext.sparkSession.sql(
+    sparkSession.sql(
       s"set ${Utils.CONNECTOR_LABEL_SPARK_CONF} = $longString")
-    val actualQueryGroup = Utils.queryGroupInfo(Utils.Read, params, sqlContext)
+    val actualQueryGroup = Utils.queryGroupInfo(Utils.Read, params, sparkSession.sqlContext)
     assert(actualQueryGroup.contains(expectedString))
   }
 
@@ -421,9 +421,9 @@ class UtilsSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll with B
     val longString = ("a" * 75) + ("b" * 75)
     val expectedTrace = "a" * 75
     val expectedString = s""""tid":"$expectedTrace""""
-    sqlContext.sparkSession.sql(
+    sparkSession.sql(
       s"set ${Utils.CONNECTOR_TRACE_ID_SPARK_CONF} = $longString")
-    val actualQueryGroup = Utils.queryGroupInfo(Utils.Read, params, sqlContext)
+    val actualQueryGroup = Utils.queryGroupInfo(Utils.Read, params, sparkSession.sqlContext)
     assert(actualQueryGroup.contains(expectedString))
   }
 
@@ -433,16 +433,16 @@ class UtilsSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll with B
     val expectedTrace = "a" * 75
     val expectedString = s""""tid":"$expectedTrace""""
     setEnv(Utils.CONNECTOR_TRACE_ID_ENV_VAR, longString)
-    val actualQueryGroup = Utils.queryGroupInfo(Utils.Read, params, sqlContext)
+    val actualQueryGroup = Utils.queryGroupInfo(Utils.Read, params, sparkSession.sqlContext)
     assert(actualQueryGroup.contains(expectedString))
   }
 
   test("Maximum queryGroupInfo is no more than 320 characters in length") {
     setEnv(Utils.CONNECTOR_SERVICE_NAME_ENV_VAR, "a" * 1000)
     val params = MergedParameters(fakeCredentials + (PARAM_HOST_CONNECTOR -> "b" * 1000))
-    sqlContext.sparkSession.sql(s"set ${Utils.CONNECTOR_LABEL_SPARK_CONF} = ${"c" * 1000}")
-    sqlContext.sparkSession.sql(s"set ${Utils.CONNECTOR_TRACE_ID_SPARK_CONF} = ${"d" * 1000}")
-    val actualQueryGroup = Utils.queryGroupInfo(Utils.Write, params, sqlContext)
+    sparkSession.sql(s"set ${Utils.CONNECTOR_LABEL_SPARK_CONF} = ${"c" * 1000}")
+    sparkSession.sql(s"set ${Utils.CONNECTOR_TRACE_ID_SPARK_CONF} = ${"d" * 1000}")
+    val actualQueryGroup = Utils.queryGroupInfo(Utils.Write, params, sparkSession.sqlContext)
     assert(actualQueryGroup.length <= 320)
   }
 
@@ -533,68 +533,68 @@ class UtilsSuite extends AnyFunSuite with Matchers with BeforeAndAfterAll with B
   test("Test supported label names") {
     // Default
     var params = fakeParams
-    var actualQueryGroup = Utils.queryGroupInfo(Utils.Read, params, sqlContext)
+    var actualQueryGroup = Utils.queryGroupInfo(Utils.Read, params, sparkSession.sqlContext)
     assert(actualQueryGroup.contains(""""lbl":"""""))
 
     // Valid
     params = MergedParameters(fakeCredentials + ("label" -> "Label1"))
-    actualQueryGroup = Utils.queryGroupInfo(Utils.Read, params, sqlContext)
+    actualQueryGroup = Utils.queryGroupInfo(Utils.Read, params, sparkSession.sqlContext)
     assert(actualQueryGroup.contains(""""lbl":"Label1""""))
 
     // Valid
     params = MergedParameters(fakeCredentials + ("label" -> "Label_1"))
-    actualQueryGroup = Utils.queryGroupInfo(Utils.Read, params, sqlContext)
+    actualQueryGroup = Utils.queryGroupInfo(Utils.Read, params, sparkSession.sqlContext)
     assert(actualQueryGroup.contains(""""lbl":"Label_1""""))
 
     // Invalid
     params = MergedParameters(fakeCredentials + ("label" -> "Label 1"))
-    actualQueryGroup = Utils.queryGroupInfo(Utils.Read, params, sqlContext)
+    actualQueryGroup = Utils.queryGroupInfo(Utils.Read, params, sparkSession.sqlContext)
     assert(actualQueryGroup.contains(""""lbl":"""""))
 
     // Invalid
     params = MergedParameters(fakeCredentials + ("label" -> "Label-1"))
-    actualQueryGroup = Utils.queryGroupInfo(Utils.Read, params, sqlContext)
+    actualQueryGroup = Utils.queryGroupInfo(Utils.Read, params, sparkSession.sqlContext)
     assert(actualQueryGroup.contains(""""lbl":"""""))
   }
 
   test("Test supported trace identifiers") {
     // Default is Spark application id
-    var actualQueryGroup = Utils.queryGroupInfo(Utils.Read, fakeParams, sqlContext)
+    var actualQueryGroup = Utils.queryGroupInfo(Utils.Read, fakeParams, sparkSession.sqlContext)
     assert(actualQueryGroup.contains(s""""tid":"${sc.applicationId}"""))
 
     // Valid
-    sqlContext.sparkSession.sql(s"set ${Utils.CONNECTOR_TRACE_ID_SPARK_CONF} = Trace-1")
-    actualQueryGroup = Utils.queryGroupInfo(Utils.Read, fakeParams, sqlContext)
+    sparkSession.sql(s"set ${Utils.CONNECTOR_TRACE_ID_SPARK_CONF} = Trace-1")
+    actualQueryGroup = Utils.queryGroupInfo(Utils.Read, fakeParams, sparkSession.sqlContext)
     assert(actualQueryGroup.contains(""""tid":"Trace-1""""))
 
     // Valid
-    sqlContext.sparkSession.sql(s"set ${Utils.CONNECTOR_TRACE_ID_SPARK_CONF} = Trace_1")
-    actualQueryGroup = Utils.queryGroupInfo(Utils.Read, fakeParams, sqlContext)
+    sparkSession.sql(s"set ${Utils.CONNECTOR_TRACE_ID_SPARK_CONF} = Trace_1")
+    actualQueryGroup = Utils.queryGroupInfo(Utils.Read, fakeParams, sparkSession.sqlContext)
     assert(actualQueryGroup.contains(""""tid":"Trace_1""""))
 
     // Valid
-    sqlContext.sparkSession.sql(s"set ${Utils.CONNECTOR_TRACE_ID_SPARK_CONF} = 1Trace")
-    actualQueryGroup = Utils.queryGroupInfo(Utils.Read, fakeParams, sqlContext)
+    sparkSession.sql(s"set ${Utils.CONNECTOR_TRACE_ID_SPARK_CONF} = 1Trace")
+    actualQueryGroup = Utils.queryGroupInfo(Utils.Read, fakeParams, sparkSession.sqlContext)
     assert(actualQueryGroup.contains(s""""tid":"1Trace""""))
 
     // Invalid - Default to spark application id.
-    sqlContext.sparkSession.sql(s"set ${Utils.CONNECTOR_TRACE_ID_SPARK_CONF} = Trace 1")
-    actualQueryGroup = Utils.queryGroupInfo(Utils.Read, fakeParams, sqlContext)
+    sparkSession.sql(s"set ${Utils.CONNECTOR_TRACE_ID_SPARK_CONF} = Trace 1")
+    actualQueryGroup = Utils.queryGroupInfo(Utils.Read, fakeParams, sparkSession.sqlContext)
     assert(actualQueryGroup.contains(s""""tid":"${sc.applicationId}"""))
   }
 
   test("Test label property has precedence over Spark configuration") {
     val params = MergedParameters(fakeCredentials + ("label" -> "Label1"))
-    sqlContext.sparkSession.sql(s"set ${Utils.CONNECTOR_LABEL_SPARK_CONF} = Label2")
-    val actualQueryGroup = Utils.queryGroupInfo(Utils.Read, params, sqlContext)
+    sparkSession.sql(s"set ${Utils.CONNECTOR_LABEL_SPARK_CONF} = Label2")
+    val actualQueryGroup = Utils.queryGroupInfo(Utils.Read, params, sparkSession.sqlContext)
     assert(actualQueryGroup.contains(""""lbl":"Label1""""))
   }
 
   test("Test trace configuration setting has precedence over env var") {
     val params = fakeParams
-    sqlContext.sparkSession.sql(s"set ${Utils.CONNECTOR_TRACE_ID_SPARK_CONF} = Trace-1")
+    sparkSession.sql(s"set ${Utils.CONNECTOR_TRACE_ID_SPARK_CONF} = Trace-1")
     setEnv(Utils.CONNECTOR_TRACE_ID_ENV_VAR, "Trace-2")
-    val actualQueryGroup = Utils.queryGroupInfo(Utils.Read, params, sqlContext)
+    val actualQueryGroup = Utils.queryGroupInfo(Utils.Read, params, sparkSession.sqlContext)
     assert(actualQueryGroup.contains(""""tid":"Trace-1""""))
   }
 }

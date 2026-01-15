@@ -16,8 +16,9 @@
 
 package io.github.spark_redshift_community.spark.redshift.test
 
-import io.github.spark_redshift_community.spark.redshift.{Utils, RedshiftConstraintViolationException}
-import org.apache.spark.sql.{SQLContext, SparkSession}
+import org.apache.spark.sql.SparkSession
+import io.github.spark_redshift_community.spark.redshift.{RedshiftConstraintViolationException, Utils}
+import org.apache.spark.sql.SQLContext
 import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.funsuite.AnyFunSuite
@@ -27,6 +28,7 @@ import java.util.Properties
 class SecureJDBCValidationSuite extends AnyFunSuite with BeforeAndAfterEach {
   private var sc: SparkContext = _
   private var sqlContext: SQLContext = _
+  private var sparkSession: SparkSession = _
 
   override def afterEach(): Unit = {
     sc.stop()
@@ -37,7 +39,9 @@ class SecureJDBCValidationSuite extends AnyFunSuite with BeforeAndAfterEach {
   test("test redshift usage constraint enablement") {
     var sparkConf = new SparkConf()
     sc = new SparkContext("local", "UtilsSuite", sparkConf)
-    sqlContext = new SQLContext(sc)
+    sparkSession =
+      SparkSession.builder().master("local").appName("SecureJDBCValidationSuite").getOrCreate()
+    sqlContext = sparkSession.sqlContext
     assert(!Utils.isUnsecureJDBCConnectionRejected())
     assert(!Utils.isRedshiftS3ConnectionViaIAMRoleOnly())
     sc.stop()
@@ -45,7 +49,9 @@ class SecureJDBCValidationSuite extends AnyFunSuite with BeforeAndAfterEach {
     sparkConf = new SparkConf().set(
       "spark.datasource.redshift.community.redshift_s3_connection_iam_role_only", "true")
     sc = new SparkContext("local", "UtilsSuite", sparkConf)
-    sqlContext = new SQLContext(sc)
+    sparkSession =
+      SparkSession.builder().master("local").appName("SecureJDBCValidationSuite").getOrCreate()
+    sqlContext = sparkSession.sqlContext
     assert(!Utils.isUnsecureJDBCConnectionRejected())
     assert(Utils.isRedshiftS3ConnectionViaIAMRoleOnly())
     sc.stop()
@@ -53,7 +59,9 @@ class SecureJDBCValidationSuite extends AnyFunSuite with BeforeAndAfterEach {
     sparkConf = new SparkConf().set(
       "spark.datasource.redshift.community.reject_unsecure_jdbc_connection", "true")
     sc = new SparkContext("local", "UtilsSuite", sparkConf)
-    sqlContext = new SQLContext(sc)
+    sparkSession =
+      SparkSession.builder().master("local").appName("SecureJDBCValidationSuite").getOrCreate()
+    sqlContext = sparkSession.sqlContext
     assert(Utils.isUnsecureJDBCConnectionRejected())
     assert(!Utils.isRedshiftS3ConnectionViaIAMRoleOnly())
   }
@@ -62,7 +70,9 @@ class SecureJDBCValidationSuite extends AnyFunSuite with BeforeAndAfterEach {
     val sparkConf = new SparkConf().set(
       "spark.datasource.redshift.community.reject_unsecure_jdbc_connection", "true")
     sc = new SparkContext("local", "UtilsSuite", sparkConf)
-    sqlContext = new SQLContext(sc)
+    sparkSession =
+      SparkSession.builder().master("local").appName("SecureJDBCValidationSuite").getOrCreate()
+    sqlContext = sparkSession.sqlContext
 
     val properties = new Properties()
 
@@ -112,7 +122,9 @@ class SecureJDBCValidationSuite extends AnyFunSuite with BeforeAndAfterEach {
     // do not fail if there's no constraint enabled
     sc.stop()
     sc = new SparkContext("local", "UtilsSuite", new SparkConf())
-    sqlContext = new SQLContext(sc)
+    sparkSession =
+      SparkSession.builder().master("local").appName("SecureJDBCValidationSuite").getOrCreate()
+    sqlContext = sparkSession.sqlContext
     assert(!Utils.isUnsecureJDBCConnectionRejected())
 
     Utils.checkJDBCSecurity("com.amazon.redshift.jdbc42.Driver",

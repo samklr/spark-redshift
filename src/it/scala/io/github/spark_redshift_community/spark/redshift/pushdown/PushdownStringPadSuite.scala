@@ -15,6 +15,7 @@
  */
 package io.github.spark_redshift_community.spark.redshift.pushdown.test
 
+import io.github.spark_redshift_community.spark.redshift.ParallelUtils
 import org.apache.spark.sql.Row
 
 abstract class PushdownStringPadSuite extends StringIntegrationPushdownSuiteBase {
@@ -31,7 +32,7 @@ abstract class PushdownStringPadSuite extends StringIntegrationPushdownSuiteBase
       (1, -5, "")
     )
 
-    columns.par.foreach(column => {
+    ParallelUtils.par(columns).foreach(column => {
       paramTuples.foreach(paramTuple => {
         val id = paramTuple._1
         val length = paramTuple._2
@@ -68,7 +69,7 @@ abstract class PushdownStringPadSuite extends StringIntegrationPushdownSuiteBase
       (1, 19, "樂A趣", "樂A趣樂A趣樂AHello World"),
       (5, 9, "ABC", "ABCABCABC")
     )
-    columns.par.foreach(column => {
+    ParallelUtils.par(columns).foreach(column => {
       paramTuples.foreach(paramTuple => {
         val id = paramTuple._1
         val length = paramTuple._2
@@ -102,7 +103,7 @@ abstract class PushdownStringPadSuite extends StringIntegrationPushdownSuiteBase
       (1, -5, "")
     )
 
-    columns.par.foreach(column => {
+    ParallelUtils.par(columns).foreach(column => {
       paramTuples.foreach(paramTuple => {
         val id = paramTuple._1
         val length = paramTuple._2
@@ -139,7 +140,7 @@ abstract class PushdownStringPadSuite extends StringIntegrationPushdownSuiteBase
       (1, 19, "樂A趣", "Hello World樂A趣樂A趣樂A"),
       (5, 9, "ABC", "ABCABCABC")
     )
-    columns.par.foreach(column => {
+    ParallelUtils.par(columns).foreach(column => {
       paramTuples.foreach(paramTuple => {
         val id = paramTuple._1
         val length = paramTuple._2

@@ -15,6 +15,7 @@
  */
 package io.github.spark_redshift_community.spark.redshift.pushdown.test
 
+import io.github.spark_redshift_community.spark.redshift.ParallelUtils
 import org.apache.spark.sql.Row
 
 abstract class PushdownStringTranslateSuite extends StringIntegrationPushdownSuiteBase {
@@ -38,7 +39,7 @@ abstract class PushdownStringTranslateSuite extends StringIntegrationPushdownSui
       (8, "/%o ", "_!\n", "_!F\n\n!_")
     )
 
-    columns.par.foreach(column => {
+    ParallelUtils.par(columns).foreach(column => {
       paramTuples.foreach(paramTuple => {
         val id = paramTuple._1
         val from = paramTuple._2
@@ -73,7 +74,7 @@ abstract class PushdownStringTranslateSuite extends StringIntegrationPushdownSui
       (9, "樂趣 ", "趣樂", "趣Multi樂")
     )
 
-    columns.par.foreach(column => {
+    ParallelUtils.par(columns).foreach(column => {
       paramTuples.foreach(paramTuple => {
         val id = paramTuple._1
         val from = paramTuple._2

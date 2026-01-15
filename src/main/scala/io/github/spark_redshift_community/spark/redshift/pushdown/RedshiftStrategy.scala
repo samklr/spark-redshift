@@ -17,20 +17,19 @@
 
 package io.github.spark_redshift_community.spark.redshift.pushdown
 
-import io.github.spark_redshift_community.spark.redshift.RedshiftRelation
 import io.github.spark_redshift_community.spark.redshift.pushdown.querygeneration.QueryBuilder
-import org.apache.spark.sql.{SparkSession, Strategy}
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, Project, SubqueryAlias}
 import org.apache.spark.sql.catalyst.trees.TreeNode
 import org.apache.spark.sql.execution.SparkPlan
-import org.apache.spark.sql.execution.datasources.{InsertIntoDataSourceCommand, LogicalRelation}
+import org.apache.spark.sql.execution.datasources.InsertIntoDataSourceCommand
 
 import scala.collection.mutable.ArrayBuffer
 
 /**
  * Clean up the plan, then try to generate a query from it for Redshift.
  */
-case class RedshiftStrategy(session: SparkSession) extends Strategy {
+case class RedshiftStrategy(session: SparkSession) extends StrategyExtension {
   def apply(plan: LogicalPlan): Seq[SparkPlan] = {
     try {
       buildQueryRDD(plan.transform({
@@ -61,11 +60,11 @@ case class RedshiftStrategy(session: SparkSession) extends Strategy {
     // Check whether this node is a RedshiftRelation. We must special-case inserts because it
     // embeds the target RedshiftRelation as a constructor parameter rather than a child node.
     node match {
-      case LogicalRelation(relation: RedshiftRelation, _, _, _) =>
-        allRedshiftInstances += relation.params.uniqueClusterName
+      case LogicalRedshiftRelationExtractor(_, redshiftRelation) =>
+        allRedshiftInstances += redshiftRelation.params.uniqueClusterName
       case InsertIntoDataSourceCommand(
-        LogicalRelation(relation: RedshiftRelation, _, _, _), _, _) =>
-          allRedshiftInstances += relation.params.uniqueClusterName
+        LogicalRedshiftRelationExtractor(_, redshiftRelation), _, _) =>
+          allRedshiftInstances += redshiftRelation.params.uniqueClusterName
       case _ =>
     }
 

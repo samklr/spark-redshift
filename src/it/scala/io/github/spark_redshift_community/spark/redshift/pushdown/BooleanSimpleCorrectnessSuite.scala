@@ -15,6 +15,7 @@
  */
 package io.github.spark_redshift_community.spark.redshift.pushdown.test
 
+import io.github.spark_redshift_community.spark.redshift.ParallelUtils
 import org.apache.spark.sql.Row
 
 /*
@@ -64,7 +65,7 @@ abstract class BooleanSimpleCorrectnessSuite extends IntegrationPushdownSuiteBas
       ("testlong", "(1239012341823719, 1)", 4, "(1239012341823719, 1)"),
       ("testshort", "(23, 24)", 2, "(23, 24)")
     )
-    input.par.foreach( test_case => {
+    ParallelUtils.par(input).foreach( test_case => {
       val column_name = test_case._1.toUpperCase
       val expected_res = test_case._2
       val result_size = test_case._3
@@ -118,7 +119,13 @@ abstract class BooleanSimpleCorrectnessSuite extends IntegrationPushdownSuiteBas
       s"""SELECT ( COUNT ( 1 ) ) AS "SQ_2_COL_0"
          |FROM ( SELECT * FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" )
          |AS "SQ_0" WHERE CAST ( "SQ_0"."TESTDATE" AS VARCHAR )
-         |IN ( \\'2015-07-01\\' , \\'2015-07-02\\' ) ) AS "SQ_1" LIMIT 1""".stripMargin)
+         |IN ( \\'2015-07-01\\' , \\'2015-07-02\\' ) ) AS "SQ_1" LIMIT 1""".stripMargin,
+      s"""SELECT ( COUNT ( 1 ) ) AS "SQ_2_COL_0"
+         |FROM ( SELECT * FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" )
+         |AS "SQ_0" WHERE "SQ_0"."TESTDATE" IN (
+         |DATEADD(day, 16617 , TO_DATE(\\'1970-01-01\\', \\'YYYY-MM-DD\\')) ,
+         |DATEADD(day, 16618 , TO_DATE(\\'1970-01-01\\', \\'YYYY-MM-DD\\')) ) )
+         |AS "SQ_1" LIMIT 1""".stripMargin)
   }
 
   test("child in list pushdown (string type)") {
@@ -149,7 +156,7 @@ abstract class BooleanSimpleCorrectnessSuite extends IntegrationPushdownSuiteBas
       ("teststring", 1),
       ("testtimestamp", 2)
     )
-    input.par.foreach( test_case => {
+    ParallelUtils.par(input).foreach( test_case => {
       val column_name = test_case._1.toUpperCase
       val result_size = test_case._2
       checkAnswer(
@@ -178,7 +185,7 @@ abstract class BooleanSimpleCorrectnessSuite extends IntegrationPushdownSuiteBas
       ("teststring", 4),
       ("testtimestamp", 3)
     )
-    input.par.foreach( test_case => {
+    ParallelUtils.par(input).foreach( test_case => {
       val column_name = test_case._1.toUpperCase
       val result_size = test_case._2
       checkAnswer(
@@ -204,7 +211,7 @@ abstract class BooleanSimpleCorrectnessSuite extends IntegrationPushdownSuiteBas
       ("testlong", 1239012341823719L, 4, ""),
       ("testshort", 23, 1, "")
     )
-    input.par.foreach( test_case => {
+    ParallelUtils.par(input).foreach( test_case => {
       val column_name = test_case._1.toUpperCase
       val match_value = test_case._2
       val result_size = test_case._3
@@ -227,7 +234,7 @@ abstract class BooleanSimpleCorrectnessSuite extends IntegrationPushdownSuiteBas
     val input = List(
       ("testbool", true, 1),
     )
-    input.par.foreach( test_case => {
+    ParallelUtils.par(input).foreach( test_case => {
       val column_name = test_case._1.toUpperCase
       val match_value = test_case._2
       val result_size = test_case._3
@@ -353,7 +360,7 @@ abstract class BooleanSimpleCorrectnessSuite extends IntegrationPushdownSuiteBas
       ("testlong", 1239012341823719L, 0, ""),
       ("testshort", 23, 2, "")
     )
-    input.par.foreach( test_case => {
+    ParallelUtils.par(input).foreach( test_case => {
       val column_name = test_case._1.toUpperCase
       val match_value = test_case._2
       val result_size = test_case._3
@@ -376,7 +383,7 @@ abstract class BooleanSimpleCorrectnessSuite extends IntegrationPushdownSuiteBas
     val input = List(
       ("testbool", true, 2),
     )
-    input.par.foreach( test_case => {
+    ParallelUtils.par(input).foreach( test_case => {
       val column_name = test_case._1.toUpperCase
       val match_value = test_case._2
       val result_size = test_case._3
@@ -450,7 +457,7 @@ abstract class BooleanSimpleCorrectnessSuite extends IntegrationPushdownSuiteBas
       ("testlong", 1239012341823719L, 4, ""),
       ("testshort", 23, 2, "")
     )
-    input.par.foreach( test_case => {
+    ParallelUtils.par(input).foreach( test_case => {
       val column_name = test_case._1.toUpperCase
       val match_value = test_case._2
       val result_size = test_case._3
@@ -505,7 +512,7 @@ abstract class BooleanSimpleCorrectnessSuite extends IntegrationPushdownSuiteBas
       ("testlong", 1239012341823719L, 4, ""),
       ("testshort", 23, 2, "")
     )
-    input.par.foreach( test_case => {
+    ParallelUtils.par(input).foreach( test_case => {
       val column_name = test_case._1.toUpperCase
       val match_value = test_case._2
       val result_size = test_case._3
@@ -561,7 +568,7 @@ abstract class BooleanSimpleCorrectnessSuite extends IntegrationPushdownSuiteBas
       ("testlong", 1239012341823719L, 0, ""),
       ("testshort", 23, 1, "")
     )
-    input.par.foreach( test_case => {
+    ParallelUtils.par(input).foreach( test_case => {
       val column_name = test_case._1.toUpperCase
       val match_value = test_case._2
       val result_size = test_case._3
@@ -616,7 +623,7 @@ abstract class BooleanSimpleCorrectnessSuite extends IntegrationPushdownSuiteBas
       ("testlong", 1239012341823719L, 0, ""),
       ("testshort", 23, 1, "")
     )
-    input.par.foreach( test_case => {
+    ParallelUtils.par(input).foreach( test_case => {
       val column_name = test_case._1.toUpperCase
       val match_value = test_case._2
       val result_size = test_case._3

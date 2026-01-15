@@ -59,8 +59,8 @@ object UndoCharTypePadding extends Rule[LogicalPlan] {
 
 object ReadSidePadding {
   def unapply(s: StaticInvoke): Option[Expression] = s match {
-    case StaticInvoke(clazz, StringType, "readSidePadding", ref  +: Literal(length, IntegerType)
-      +: Nil, _, _, _, _)
+    case StaticInvokeExtractor(
+      clazz, StringType, "readSidePadding", ref +: Literal(length, IntegerType) +: Nil)
       if ref.isInstanceOf[AttributeReference] &&
         clazz == classOf[CharVarcharCodegenUtils] &&
         length.isInstanceOf[Int] =>
