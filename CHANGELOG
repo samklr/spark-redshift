@@ -16,6 +16,11 @@
 
 # spark-redshift Changelog
 
+## 6.7.0 (2026-6-04)
+- Added Support for Apache Spark 4.1.0 [Ruei-Yang Huang]
+- Fixed an issue where Spark Decimal types were not casted to numeric types during Parquet data type conversion [Luis Garza]
+- Confirmed compatibility with AWS SDK v2.45.1 and Redshift JDBC driver v2.2.6 and v2.2.7 [Ruei-Yang Huang]
+
 ## 6.6.1 (2026-3-16)
 - Verified the connector is compatible with the latest Spark patch release 3.5.8 and 4.0.2 [Ruei-Yang Huang]
 - Updated dependencies to AWS SDK v2.42.7 and Redshift JDBC driver v2.2.5 [Ruei-Yang Huang]
