@@ -45,9 +45,9 @@ val buildScalaVersion = sys.props.get("scala.buildVersion").getOrElse {
 val testHadoopVersion = sys.props.get("hadoop.testVersion").getOrElse("3.4.2")
 
 // DON'T UPGRADE AWS-SDK-JAVA if not compatible with the Hadoop version
-val testAWSJavaSDKVersion = sys.props.get("aws.testVersion").getOrElse("2.42.7")
+val testAWSJavaSDKVersion = sys.props.get("aws.testVersion").getOrElse("2.45.1")
 // Determine JDBC driver version
-val testJDBCVersion = sys.props.get("jdbc.testVersion").getOrElse("2.2.5")
+val testJDBCVersion = sys.props.get("jdbc.testVersion").getOrElse("2.2.7")
 
 // Determine which binary repo to use
 val isInternalRepo = "true" equalsIgnoreCase System.getProperty("config.InternalRepo")
