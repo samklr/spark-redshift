@@ -24,8 +24,9 @@ import scoverage.ScoverageKeys
 import java.util.Properties
 import java.io.FileInputStream
 
-// The latest connector supports Spark versions 3.3.x, 3.4.x, 3.5.x, and 4.0.x
-val sparkVersion = "4.0.2"
+// The latest connector supports Spark versions 3.3.x, 3.4.x, 3.5.x, 4.0.x, and 4.1.x
+val sparkVersion = "4.1.0"
+// val sparkVersion = "4.0.2"
 // val sparkVersion = "3.5.8"
 // val sparkVersion = "3.4.4"
 // val sparkVersion = "3.3.4"
@@ -38,10 +39,10 @@ val sparkMajorVersion = versionArray(0)
 val sparkMinorVersion = versionArray(1)
 
 val buildScalaVersion = sys.props.get("scala.buildVersion").getOrElse {
-  if (sparkMajorVersion >= 4) "2.13.16" else "2.12.15"
+  if (sparkMajorVersion >= 4) "2.13.17" else "2.12.15"
 }
 
-val testHadoopVersion = sys.props.get("hadoop.testVersion").getOrElse("3.4.1")
+val testHadoopVersion = sys.props.get("hadoop.testVersion").getOrElse("3.4.2")
 
 // DON'T UPGRADE AWS-SDK-JAVA if not compatible with the Hadoop version
 val testAWSJavaSDKVersion = sys.props.get("aws.testVersion").getOrElse("2.42.7")
@@ -71,7 +72,14 @@ def incompatibleSparkVersions(): FileFilter = {
   val minor = versionArray(1)
 
   new FileFilter {
-    def accept(f: File): Boolean = f.getPath.containsSlice("_spark_") && !f.getPath.containsSlice(s"_spark_${major}_${minor}_")
+    def accept(f: File): Boolean = {
+      if (!f.getPath.containsSlice("_spark_")) return false
+      // Current version's shim is always compatible
+      if (f.getPath.containsSlice(s"_spark_${major}_${minor}_")) return false
+      // Spark 4.1 reuses 4.0 shims (identical APIs)
+      if (major == 4 && minor == 1 && f.getPath.containsSlice("_spark_4_0_")) return false
+      true
+    }
   }
 }
 
@@ -182,9 +190,9 @@ def getJavacOptions(): Seq[String] = {
 def getJavaOptions(): Seq[String] = {
   Seq(
     "-Xms512M",
-    "-Xmx2048M",
+    "-Xmx4096M",
     "-Duser.timezone=GMT",
-    "-Dscala.concurrent.context.maxThreads=5",
+    "-Dscala.concurrent.context.maxThreads=10",
 
     // Must add the following JVM options for using Spark with Java 17
     // https://stackoverflow.com/questions/78700208/symbolic-reference-class-is-not-accessible-class-sun-util-calendar-zoneinfo-fr
@@ -258,6 +266,7 @@ lazy val root = Project("spark-redshift", file("."))
       "software.amazon.awssdk" % "redshiftdata" % testAWSJavaSDKVersion % "provided",
       "software.amazon.awssdk" % "regions" % testAWSJavaSDKVersion % "provided",
       "software.amazon.awssdk" % "s3" % testAWSJavaSDKVersion % "provided",
+      "software.amazon.awssdk" % "s3-transfer-manager" % testAWSJavaSDKVersion % "provided",
       "software.amazon.awssdk" % "secretsmanager" % testAWSJavaSDKVersion % "test",
       "software.amazon.awssdk" % "sdk-core" % testAWSJavaSDKVersion % "provided",
       "software.amazon.awssdk" % "utils" % testAWSJavaSDKVersion % "provided",
@@ -271,7 +280,8 @@ lazy val root = Project("spark-redshift", file("."))
 
       "org.apache.hadoop" % "hadoop-aws" % testHadoopVersion % "provided" excludeAll
         (ExclusionRule(organization = "com.fasterxml.jackson.core"))
-        exclude("org.apache.hadoop", "hadoop-common"),
+        exclude("org.apache.hadoop", "hadoop-common")
+        exclude("software.amazon.awssdk", "bundle"),
       "org.apache.spark" %% "spark-core" % testSparkVersion % "provided" exclude("org.apache.hadoop", "hadoop-client") force(),
       "org.apache.spark" %% "spark-sql" % testSparkVersion % "provided" exclude("org.apache.hadoop", "hadoop-client") force(),
       "org.apache.spark" %% "spark-hive" % testSparkVersion % "provided" exclude("org.apache.hadoop", "hadoop-client") force(),

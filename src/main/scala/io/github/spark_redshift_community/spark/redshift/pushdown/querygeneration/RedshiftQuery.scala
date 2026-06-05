@@ -321,8 +321,8 @@ case class MergeQuery(targetQuery: SourceQuery,
           true
         case (InsertAction(_, assignments1), InsertAction(_, assignments2)) =>
           assignments1.sorted(AssignmentOrdering) == assignments2.sorted(AssignmentOrdering)
-        case (UpdateAction(_, assignments1), UpdateAction(_, assignments2)) =>
-          assignments1.sorted(AssignmentOrdering) == assignments2.sorted(AssignmentOrdering)
+        case (u1: UpdateAction, u2: UpdateAction) =>
+          u1.assignments.sorted(AssignmentOrdering) == u2.assignments.sorted(AssignmentOrdering)
         case _ =>
           false
       }
@@ -414,8 +414,8 @@ case class MergeQuery(targetQuery: SourceQuery,
     })
 
     val matchedExpression = localMatchedActions.headOption match {
-      case Some(UpdateAction(_, assignments)) =>
-        val assignmentsStatement = assignments.map { assignment =>
+      case Some(u: UpdateAction) =>
+        val assignmentsStatement = u.assignments.map { assignment =>
           val assignmentExpr = setAssignmentQualifier(assignment)
           expressionToStatement(assignmentExpr)
         }.mkString(", ")

@@ -249,6 +249,19 @@ class LST_CorrectnessSuite extends LSTIntegrationPushdownSuiteBase {
        |               ( "SQ_1"."inv_date_sk" )          AS "SQ_2_COL_3"
        |        FROM   (SELECT *
        |                FROM   "PUBLIC"."inventory" AS "RCQ_ALIAS") AS "SQ_1") AS "SQ_2""""
+      .stripMargin,
+    // Spark 4.1: removes redundant casts and adds extra project wrapping
+    s"""INSERT INTO "PUBLIC"."inventory_copy"
+       |SELECT ( "SQ_2"."SQ_2_COL_0" ) AS "SQ_3_COL_0",
+       |       ( "SQ_2"."SQ_2_COL_1" ) AS "SQ_3_COL_1",
+       |       ( "SQ_2"."SQ_2_COL_2" ) AS "SQ_3_COL_2",
+       |       ( "SQ_2"."SQ_2_COL_3" ) AS "SQ_3_COL_3"
+       |FROM   (SELECT ( "SQ_1"."INV_ITEM_SK" )          AS "SQ_2_COL_0",
+       |               ( "SQ_1"."INV_WAREHOUSE_SK" )     AS "SQ_2_COL_1",
+       |               ( "SQ_1"."INV_QUANTITY_ON_HAND" ) AS "SQ_2_COL_2",
+       |               ( "SQ_1"."INV_DATE_SK" )          AS "SQ_2_COL_3"
+       |        FROM   (SELECT *
+       |                FROM   "PUBLIC"."inventory" AS "RCQ_ALIAS") AS "SQ_1") AS "SQ_2""""
       .stripMargin)
 
   test("LST-Insert-1") {

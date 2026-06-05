@@ -55,6 +55,12 @@ class InsertCorrectnessSuite extends IntegrationPushdownSuiteBase {
            | SELECT ( CAST ( "SQ_1"."COL1" AS INTEGER ) ) AS "SQ_2_COL_0" ,
            | ( CAST ( "SQ_1"."COL2" AS INTEGER ) ) AS "SQ_2_COL_1"
            | FROM ( ( (SELECT 1  AS "col1", 100  AS "col2")
+           | UNION ALL (SELECT 3  AS "col1", 2000  AS "col2") ) ) AS "SQ_1"""".stripMargin,
+        // Spark 4.1: optimizer removes redundant casts for matching types
+        s"""INSERT INTO "PUBLIC"."$tableName"
+           | SELECT ( "SQ_1"."COL1" ) AS "SQ_2_COL_0" ,
+           | ( "SQ_1"."COL2" ) AS "SQ_2_COL_1"
+           | FROM ( ( (SELECT 1  AS "col1", 100  AS "col2")
            | UNION ALL (SELECT 3  AS "col1", 2000  AS "col2") ) ) AS "SQ_1"""".stripMargin
       )
 
@@ -80,6 +86,12 @@ class InsertCorrectnessSuite extends IntegrationPushdownSuiteBase {
         s"""INSERT INTO "PUBLIC"."$tableName"
            | SELECT ( CAST ( "SQ_1"."COL1" AS INTEGER ) ) AS "SQ_2_COL_0" ,
            | ( CAST ( "SQ_1"."COL2" AS INTEGER ) ) AS "SQ_2_COL_1" FROM
+           | ( ( (SELECT 1  AS "col1", 100  AS "col2") UNION ALL
+           | (SELECT 1  AS "col1", 100  AS "col2") ) ) AS "SQ_1"""".stripMargin,
+        // Spark 4.1: optimizer removes redundant casts for matching types
+        s"""INSERT INTO "PUBLIC"."$tableName"
+           | SELECT ( "SQ_1"."COL1" ) AS "SQ_2_COL_0" ,
+           | ( "SQ_1"."COL2" ) AS "SQ_2_COL_1" FROM
            | ( ( (SELECT 1  AS "col1", 100  AS "col2") UNION ALL
            | (SELECT 1  AS "col1", 100  AS "col2") ) ) AS "SQ_1"""".stripMargin
       )
@@ -112,6 +124,20 @@ class InsertCorrectnessSuite extends IntegrationPushdownSuiteBase {
         s"""INSERT INTO "PUBLIC"."$tableName"
            | SELECT ( CAST ( "SQ_2"."SQ_2_COL_1" AS INTEGER ) ) AS "SQ_3_COL_0" ,
            | ( CAST ( "SQ_2"."SQ_2_COL_0" AS INTEGER ) ) AS "SQ_3_COL_1"
+           | FROM ( SELECT ( "SQ_1"."COL1" ) AS "SQ_2_COL_0" , ( "SQ_1"."COL2" ) AS "SQ_2_COL_1"
+           | FROM ( ( (SELECT 100  AS "col1", 1  AS "col2") UNION ALL
+           | (SELECT 2000  AS "col1", 3  AS "col2") ) ) AS "SQ_1" ) AS "SQ_2""""
+          .stripMargin,
+        // Spark 4.1: optimizer removes redundant casts for matching types
+        s"""INSERT INTO "PUBLIC"."$tableName"
+           | SELECT ( "SQ_2"."SQ_2_COL_0" ) AS "SQ_3_COL_0" ,
+           | ( "SQ_2"."SQ_2_COL_1" ) AS "SQ_3_COL_1" FROM (
+           | SELECT ( "SQ_1"."COL2" ) AS "SQ_2_COL_0" , ( "SQ_1"."COL1" ) AS
+           | "SQ_2_COL_1" FROM ( ( (SELECT 100 AS "col1", 1 AS "col2") UNION ALL
+           | (SELECT 2000 AS "col1", 3 AS "col2") ) ) AS "SQ_1" ) AS "SQ_2"""".stripMargin,
+        s"""INSERT INTO "PUBLIC"."$tableName"
+           | SELECT ( "SQ_2"."SQ_2_COL_1" ) AS "SQ_3_COL_0" ,
+           | ( "SQ_2"."SQ_2_COL_0" ) AS "SQ_3_COL_1"
            | FROM ( SELECT ( "SQ_1"."COL1" ) AS "SQ_2_COL_0" , ( "SQ_1"."COL2" ) AS "SQ_2_COL_1"
            | FROM ( ( (SELECT 100  AS "col1", 1  AS "col2") UNION ALL
            | (SELECT 2000  AS "col1", 3  AS "col2") ) ) AS "SQ_1" ) AS "SQ_2""""
@@ -150,6 +176,21 @@ class InsertCorrectnessSuite extends IntegrationPushdownSuiteBase {
           s"""INSERT INTO "PUBLIC"."$tableName"
              | SELECT ( CAST ( "SQ_2"."SQ_2_COL_0" AS INTEGER ) ) AS "SQ_3_COL_0" ,
              | ( NULL ) AS "SQ_3_COL_1" , ( CAST ( "SQ_2"."SQ_2_COL_1" AS VARCHAR ) ) AS "SQ_3_COL_2"
+             | FROM ( SELECT ( "SQ_1"."COL1" ) AS "SQ_2_COL_0" , ( "SQ_1"."COL2" ) AS "SQ_2_COL_1"
+             | FROM ( ( (SELECT 100  AS "col1", '1'  AS "col2") UNION ALL
+             | (SELECT 2000 AS "col1", '2' AS "col2") ) ) AS "SQ_1" ) AS "SQ_2""""
+            .stripMargin,
+          // Spark 4.1: optimizer removes redundant casts for matching types
+          s"""INSERT INTO "PUBLIC"."$tableName"
+             | SELECT ( "SQ_2"."SQ_2_COL_0" ) AS "SQ_3_COL_0" ,
+             | ( "SQ_2"."SQ_2_COL_1" ) AS "SQ_3_COL_1" , ( "SQ_2"."SQ_2_COL_2" ) AS "SQ_3_COL_2"
+             | FROM ( SELECT ( "SQ_1"."A" ) AS "SQ_2_COL_0" , ( "SQ_1"."B" ) AS "SQ_2_COL_1" ,
+             | ( "SQ_1"."C" ) AS "SQ_2_COL_2" FROM ( ( (SELECT 100 AS "a", '1' AS
+             | "c", NULL AS "b") UNION ALL (SELECT 2000 AS "a", '2' AS "c", NULL AS
+             | "b") ) ) AS "SQ_1" ) AS "SQ_2"""".stripMargin,
+          s"""INSERT INTO "PUBLIC"."$tableName"
+             | SELECT ( "SQ_2"."SQ_2_COL_0" ) AS "SQ_3_COL_0" ,
+             | ( NULL ) AS "SQ_3_COL_1" , ( "SQ_2"."SQ_2_COL_1" ) AS "SQ_3_COL_2"
              | FROM ( SELECT ( "SQ_1"."COL1" ) AS "SQ_2_COL_0" , ( "SQ_1"."COL2" ) AS "SQ_2_COL_1"
              | FROM ( ( (SELECT 100  AS "col1", '1'  AS "col2") UNION ALL
              | (SELECT 2000 AS "col1", '2' AS "col2") ) ) AS "SQ_1" ) AS "SQ_2""""
@@ -207,6 +248,15 @@ class InsertCorrectnessSuite extends IntegrationPushdownSuiteBase {
            | SELECT ( CAST ( "SQ_1"."COL1" AS BIGINT ) ) AS "SQ_2_COL_0" ,
            | ( CAST ( "SQ_1"."COL2" AS INTEGER ) ) AS "SQ_2_COL_1" ,
            | ( CAST ( "SQ_1"."COL3" AS INTEGER ) ) AS "SQ_2_COL_2"
+           | FROM ( ( (SELECT 1  AS "col1", NULL  AS "col2", 1000  AS "col3") UNION ALL
+           | (SELECT 2  AS "col1", 2000  AS "col2", NULL  AS "col3") ) )
+           | AS "SQ_1""""
+          .stripMargin,
+        // Spark 4.1: removes redundant casts but keeps CAST for type widening (INT->BIGINT)
+        s"""INSERT INTO "PUBLIC"."$tableName"
+           | SELECT ( CAST ( "SQ_1"."COL1" AS BIGINT ) ) AS "SQ_2_COL_0" ,
+           | ( "SQ_1"."COL2" ) AS "SQ_2_COL_1" ,
+           | ( "SQ_1"."COL3" ) AS "SQ_2_COL_2"
            | FROM ( ( (SELECT 1  AS "col1", NULL  AS "col2", 1000  AS "col3") UNION ALL
            | (SELECT 2  AS "col1", 2000  AS "col2", NULL  AS "col3") ) )
            | AS "SQ_1""""
@@ -293,6 +343,17 @@ class InsertCorrectnessSuite extends IntegrationPushdownSuiteBase {
              | "SQ_2_COL_0" FROM ( SELECT * FROM ( SELECT * FROM
              | "PUBLIC"."$tableNameSource" AS "RCQ_ALIAS" ) AS "SQ_0"
              | WHERE ( "SQ_0"."VALUE" < 40 ) ) AS "SQ_1" ) ) AS "SQ_2""""
+            .stripMargin,
+          // Spark 4.1: extra project wrapping
+          s"""INSERT INTO "PUBLIC"."$tableName"
+             | SELECT ( "SQ_3"."SQ_3_COL_0" ) AS "SQ_4_COL_0" , ( "SQ_3"."SQ_3_COL_1" )
+             | AS "SQ_4_COL_1" FROM ( SELECT ( "SQ_2"."ID" ) AS "SQ_3_COL_0" , ( "SQ_2"."VALUE" )
+             | AS "SQ_3_COL_1" FROM ( SELECT * FROM ( SELECT * FROM
+             | "PUBLIC"."$tableNameSource" AS "RCQ_ALIAS" ) AS "SQ_1"
+             | WHERE ( "SQ_1"."VALUE" ) IN ( SELECT ( "SQ_1"."VALUE" ) AS
+             | "SQ_2_COL_0" FROM ( SELECT * FROM ( SELECT * FROM
+             | "PUBLIC"."$tableNameSource" AS "RCQ_ALIAS" ) AS "SQ_0"
+             | WHERE ( "SQ_0"."VALUE" < 40 ) ) AS "SQ_1" ) ) AS "SQ_2" ) AS "SQ_3""""
             .stripMargin
         )
 
@@ -334,6 +395,19 @@ class InsertCorrectnessSuite extends IntegrationPushdownSuiteBase {
              | SELECT ( "SQ_2"."SQ_2_COL_0" ) AS "SQ_3_COL_0" ,
              | ( "SQ_2"."SQ_2_COL_1" ) AS "SQ_3_COL_1" ,
              | ( CAST ( "SQ_2"."SQ_2_COL_2" AS INTEGER ) )
+             | AS "SQ_3_COL_2" FROM ( SELECT ( "SQ_1"."ID" ) AS "SQ_2_COL_0" ,
+             | ( "SQ_1"."VALUE" ) AS "SQ_2_COL_1" ,
+             | ( ( SELECT ( MAX ( "SQ_0"."NUM" ) ) AS "SQ_1_COL_0" FROM
+             | ( SELECT * FROM "PUBLIC"."$tableNameSource" AS "RCQ_ALIAS" )
+             | AS "SQ_0" LIMIT 1 ) ) AS "SQ_2_COL_2" FROM ( SELECT *
+             | FROM "PUBLIC"."$tableNameSource" AS "RCQ_ALIAS" )
+             |  AS "SQ_1" ) AS "SQ_2""""
+            .stripMargin,
+          // Spark 4.1: removes redundant cast on scalar subquery result
+          s"""INSERT INTO "PUBLIC"."$tableName"
+             | SELECT ( "SQ_2"."SQ_2_COL_0" ) AS "SQ_3_COL_0" ,
+             | ( "SQ_2"."SQ_2_COL_1" ) AS "SQ_3_COL_1" ,
+             | ( "SQ_2"."SQ_2_COL_2" )
              | AS "SQ_3_COL_2" FROM ( SELECT ( "SQ_1"."ID" ) AS "SQ_2_COL_0" ,
              | ( "SQ_1"."VALUE" ) AS "SQ_2_COL_1" ,
              | ( ( SELECT ( MAX ( "SQ_0"."NUM" ) ) AS "SQ_1_COL_0" FROM
@@ -430,6 +504,12 @@ class InsertCorrectnessSuite extends IntegrationPushdownSuiteBase {
         checkSqlStatement(
           s"""INSERT INTO "PUBLIC"."$tableName"
              | SELECT * FROM "PUBLIC"."$tableNameSource" AS "RCQ_ALIAS""""
+            .stripMargin,
+          // Spark 4.1: extra project wrapping
+          s"""INSERT INTO "PUBLIC"."$tableName"
+             | SELECT ( "SQ_1"."ID" ) AS "SQ_2_COL_0" , ( "SQ_1"."VALUE" ) AS "SQ_2_COL_1" ,
+             | ( "SQ_1"."QUANTITY" ) AS "SQ_2_COL_2" FROM
+             | ( SELECT * FROM "PUBLIC"."$tableNameSource" AS "RCQ_ALIAS" ) AS "SQ_1""""
             .stripMargin
         )
 
@@ -516,6 +596,18 @@ class InsertCorrectnessSuite extends IntegrationPushdownSuiteBase {
            | ( SELECT * FROM ( SELECT * FROM "PUBLIC"."$source_table" AS
            | "RCQ_ALIAS" ) AS "SQ_0" WHERE ( "SQ_0"."TESTINT" > 0 ) )
            | AS "SQ_1" ) ) AS "SQ_2" ) AS "SQ_3""""
+          .stripMargin,
+        // Spark 4.1: removes redundant cast and adds extra project wrapping
+        s"""INSERT INTO "PUBLIC"."$tableName"
+           | SELECT ( "SQ_4"."SQ_4_COL_0" ) AS "SQ_5_COL_0" FROM
+           | ( SELECT ( "SQ_3"."SQ_3_COL_0" ) AS "SQ_4_COL_0" FROM
+           | ( SELECT ( "SQ_2"."TESTINT" ) AS "SQ_3_COL_0" FROM ( SELECT
+           | * FROM ( SELECT * FROM "PUBLIC"."$source_table" AS
+           | "RCQ_ALIAS" ) AS "SQ_1" WHERE ( "SQ_1"."TESTINT" )
+           | IN ( SELECT ( "SQ_1"."TESTINT" ) AS "SQ_2_COL_0" FROM
+           | ( SELECT * FROM ( SELECT * FROM "PUBLIC"."$source_table" AS
+           | "RCQ_ALIAS" ) AS "SQ_0" WHERE ( "SQ_0"."TESTINT" > 0 ) )
+           | AS "SQ_1" ) ) AS "SQ_2" ) AS "SQ_3" ) AS "SQ_4""""
           .stripMargin
       )
 
@@ -544,6 +636,14 @@ class InsertCorrectnessSuite extends IntegrationPushdownSuiteBase {
         checkSqlStatement(
           s"""INSERT INTO "PUBLIC"."$tableName"
              | SELECT ( CAST ( "SQ_3"."SQ_3_COL_0" AS INTEGER ) ) AS "SQ_4_COL_0" ,
+             | ( NULL ) AS "SQ_4_COL_1" FROM ( SELECT ( "SQ_2"."SQ_2_COL_0" ) AS "SQ_3_COL_0"
+             | FROM ( SELECT ( MIN ( "SQ_1"."TESTINT" ) ) AS "SQ_2_COL_0" FROM
+             | ( SELECT * FROM "PUBLIC"."$source_table" AS "RCQ_ALIAS" )
+             | AS "SQ_1" LIMIT 1 ) AS "SQ_2" ) AS "SQ_3""""
+            .stripMargin,
+          // Spark 4.1: removes redundant cast (MIN returns same type as input)
+          s"""INSERT INTO "PUBLIC"."$tableName"
+             | SELECT ( "SQ_3"."SQ_3_COL_0" ) AS "SQ_4_COL_0" ,
              | ( NULL ) AS "SQ_4_COL_1" FROM ( SELECT ( "SQ_2"."SQ_2_COL_0" ) AS "SQ_3_COL_0"
              | FROM ( SELECT ( MIN ( "SQ_1"."TESTINT" ) ) AS "SQ_2_COL_0" FROM
              | ( SELECT * FROM "PUBLIC"."$source_table" AS "RCQ_ALIAS" )

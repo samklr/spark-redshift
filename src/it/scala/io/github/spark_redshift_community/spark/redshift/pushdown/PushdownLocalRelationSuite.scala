@@ -36,6 +36,12 @@ class PushdownLocalRelationSuite extends IntegrationPushdownSuiteBase {
            | SELECT ( CAST ( "SQ_1"."COL1" AS INTEGER ) ) AS "SQ_2_COL_0" ,
            | ( CAST ( "SQ_1"."COL2" AS INTEGER ) ) AS "SQ_2_COL_1"
            | FROM ( ( (SELECT 1  AS "col1", 100  AS "col2")
+           | UNION ALL (SELECT 3  AS "col1", 2000  AS "col2") ) ) AS "SQ_1"""".stripMargin,
+        // Spark 4.1: optimizer removes redundant casts for matching types
+        s"""INSERT INTO "PUBLIC"."$tableName"
+           | SELECT ( "SQ_1"."COL1" ) AS "SQ_2_COL_0" ,
+           | ( "SQ_1"."COL2" ) AS "SQ_2_COL_1"
+           | FROM ( ( (SELECT 1  AS "col1", 100  AS "col2")
            | UNION ALL (SELECT 3  AS "col1", 2000  AS "col2") ) ) AS "SQ_1"""".stripMargin
       )
 

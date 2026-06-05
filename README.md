@@ -132,7 +132,7 @@ You may also build the connector locally by following the below steps.
 2. Install Java 1.8
 3. Install scala (https://www.scala-lang.org/download/)
 4. Install sbt (https://www.scala-sbt.org/download/)
-5. Modify the value `sparkVersion` within `build.sbt` to the target version of Spark. The connector supports Spark 3.3.x, 3.4.x, 3.5.x, and 4.0.x
+5. Modify the value `sparkVersion` within `build.sbt` to the target version of Spark. The connector supports Spark 3.3.x, 3.4.x, 3.5.x, 4.0.x, and 4.1.x
 6. Build the connector `sbt clean package`
 7. The jar file can be found in `target\scala-2.12\`
 

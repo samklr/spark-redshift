@@ -24,6 +24,12 @@ class MergeCorrectnessSuite extends IntegrationPushdownSuiteBase {
   override val s3_result_cache: String = "false"
   override val s3format = "TEXT"
 
+  private def assertMergeUnsupported(e: Throwable): Unit = {
+    assert(e.getMessage.equals("MERGE INTO TABLE is not supported temporarily.") ||
+      e.getMessage.contains("[UNSUPPORTED_FEATURE.TABLE_OPERATION] The feature is not " +
+        "supported: Table `unknown` does not support MERGE INTO TABLE."))
+  }
+
   def initialMergeTestData(sourceTable: String, targetTable: String): Unit = {
     redshiftWrapper.executeUpdate(conn,
       s"create table $targetTable (id smallint, status int, name varchar(50))"
@@ -181,7 +187,7 @@ class MergeCorrectnessSuite extends IntegrationPushdownSuiteBase {
              |""".stripMargin)
       } catch {
         case e: Throwable =>
-          assert(e.getMessage.equals("MERGE INTO TABLE is not supported temporarily."))
+          assertMergeUnsupported(e)
       }
     }
   }
@@ -285,7 +291,7 @@ class MergeCorrectnessSuite extends IntegrationPushdownSuiteBase {
              |""".stripMargin)
       } catch {
         case e: Throwable =>
-          assert(e.getMessage.equals("MERGE INTO TABLE is not supported temporarily."))
+          assertMergeUnsupported(e)
       }
     }
   }
@@ -623,7 +629,7 @@ class MergeCorrectnessSuite extends IntegrationPushdownSuiteBase {
            """.stripMargin)
       } catch {
         case e: Throwable =>
-          assert(e.getMessage.equals("MERGE INTO TABLE is not supported temporarily."))
+          assertMergeUnsupported(e)
       }
     }
   }
@@ -855,6 +861,68 @@ class MergeCorrectnessSuite extends IntegrationPushdownSuiteBase {
     }
   }
 
+  test("MERGE with UPDATE SET * (fromStar)") {
+    // UPDATE SET * is supported since Spark 3.4. In Spark 4.1, UpdateAction gained a
+    // fromStar field but the pushed-down SQL is identical across all versions —
+    // the connector expands * to explicit column assignments.
+    if (sparkVersion.greaterThanOrEqualTo("3.4")) {
+      withTwoTempRedshiftTables("sourceTable", "targetTable") { (sourceTable, targetTable) =>
+        redshiftWrapper.executeUpdate(conn,
+          s"create table $targetTable (id smallint, status int, name varchar(50))"
+        )
+        redshiftWrapper.executeUpdate(conn,
+          s"create table $sourceTable (id smallint, status int, name varchar(50))"
+        )
+
+        read.option("dbtable", targetTable).load.createOrReplaceTempView(targetTable)
+        read.option("dbtable", sourceTable).load.createOrReplaceTempView(sourceTable)
+
+        val targetDf = sqlContext.createDataFrame(Seq(
+          (1, 400, "john"),
+          (2, 401, "sean"),
+          (3, 402, "mike")
+        )).toDF("id", "status", "name")
+        val sourceDf = sqlContext.createDataFrame(Seq(
+          (2, 501, "emily"),
+          (4, 502, "emma")
+        )).toDF("id", "status", "name")
+
+        write(targetDf).option("dbtable", targetTable).mode("append").save()
+        write(sourceDf).option("dbtable", sourceTable).mode("append").save()
+
+        val query =
+          s"""MERGE INTO $targetTable
+             |USING $sourceTable
+             |ON $targetTable.id = $sourceTable.id
+             |WHEN MATCHED THEN UPDATE SET *
+             |WHEN NOT MATCHED THEN INSERT *""".stripMargin
+        sqlContext.sql(query)
+
+        checkSqlStatement(
+          s"""MERGE INTO "PUBLIC"."$targetTable" USING "PUBLIC"."$sourceTable"
+             | ON ( "PUBLIC"."$targetTable"."ID" = "PUBLIC"."$sourceTable"."ID" )
+             | WHEN MATCHED THEN UPDATE SET
+             | "ID" = "PUBLIC"."$sourceTable"."ID",
+             | "STATUS" = "PUBLIC"."$sourceTable"."STATUS",
+             | "NAME" = "PUBLIC"."$sourceTable"."NAME"
+             | WHEN NOT MATCHED THEN INSERT ("ID", "STATUS", "NAME") VALUES
+             | ("PUBLIC"."$sourceTable"."ID",
+             |  "PUBLIC"."$sourceTable"."STATUS",
+             |  "PUBLIC"."$sourceTable"."NAME" )""".stripMargin
+        )
+
+        checkAnswer(
+          sqlContext.sql(s"select * from $targetTable"),
+          Seq(
+            Row(1, 400, "john"),
+            Row(2, 501, "emily"),
+            Row(3, 402, "mike"),
+            Row(4, 502, "emma"))
+        )
+      }
+    }
+  }
+
   test("Negative test: conditional matched action not supported") {
     withTwoTempRedshiftTables("sourceTable", "targetTable") { (sourceTable, targetTable) =>
       initialMergeTestData(sourceTable, targetTable)
@@ -873,7 +941,7 @@ class MergeCorrectnessSuite extends IntegrationPushdownSuiteBase {
         sqlContext.sql(query)
       } catch {
         case e: Throwable =>
-        assert(e.getMessage == "MERGE INTO TABLE is not supported temporarily.")
+        assertMergeUnsupported(e)
       }
     }
   }
@@ -893,7 +961,7 @@ class MergeCorrectnessSuite extends IntegrationPushdownSuiteBase {
           sqlContext.sql(query)
         } catch {
           case e: Exception =>
-            assert(e.getMessage.equals("MERGE INTO TABLE is not supported temporarily."))
+            assertMergeUnsupported(e)
         }
       }
     }

@@ -477,6 +477,56 @@ abstract class PushdownSqlClauseSuite extends IntegrationPushdownSuiteBase {
     )
   }
 
+  test("Query through SQL view pushdown", P0Test, P1Test) {
+    sqlContext.sql(
+      s"""CREATE OR REPLACE TEMP VIEW test_view AS
+         |SELECT teststring, testshort FROM test_table WHERE testshort < 0""".stripMargin)
+
+    checkAnswer(
+      sqlContext.sql("""SELECT teststring FROM test_view WHERE teststring = 'asdf'"""),
+      Seq(Row("asdf"))
+    )
+
+    checkSqlStatement(
+      s"""SELECT ( "SQ_1"."TESTSTRING" ) AS "SQ_2_COL_0" FROM
+         | ( SELECT * FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" )
+         | AS "SQ_0" WHERE ( ( ( "SQ_0"."TESTSHORT" IS NOT NULL )
+         | AND ( "SQ_0"."TESTSTRING" IS NOT NULL ) )
+         | AND ( ( "SQ_0"."TESTSHORT" < 0 )
+         | AND ( "SQ_0"."TESTSTRING" = \\'asdf\\' ) ) ) ) AS "SQ_1"""".stripMargin
+    )
+  }
+
+  test("Query through nested SQL views pushdown", P0Test, P1Test) {
+    sqlContext.sql(
+      s"""CREATE OR REPLACE TEMP VIEW inner_view AS
+         |SELECT teststring, testshort FROM test_table WHERE testshort < 0""".stripMargin)
+    sqlContext.sql(
+      s"""CREATE OR REPLACE TEMP VIEW outer_view AS
+         |SELECT teststring FROM inner_view WHERE teststring IS NOT NULL""".stripMargin)
+
+    checkAnswer(
+      sqlContext.sql("""SELECT teststring FROM outer_view WHERE teststring = 'asdf'"""),
+      Seq(Row("asdf"))
+    )
+
+    checkSqlStatement(
+      s"""SELECT ( "SQ_1"."TESTSTRING" ) AS "SQ_2_COL_0" FROM
+         | ( SELECT * FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" )
+         | AS "SQ_0" WHERE ( ( ( "SQ_0"."TESTSHORT" IS NOT NULL )
+         | AND ( "SQ_0"."TESTSTRING" IS NOT NULL ) )
+         | AND ( ( "SQ_0"."TESTSHORT" < 0 )
+         | AND ( "SQ_0"."TESTSTRING" = \\'asdf\\' ) ) ) ) AS "SQ_1"""".stripMargin,
+      // Spark 4.1: different filter grouping from nested view merging
+      s"""SELECT ( "SQ_1"."TESTSTRING" ) AS "SQ_2_COL_0" FROM
+         | ( SELECT * FROM ( SELECT * FROM $test_table AS "RCQ_ALIAS" )
+         | AS "SQ_0" WHERE ( ( "SQ_0"."TESTSHORT" IS NOT NULL )
+         | AND ( ( "SQ_0"."TESTSHORT" < 0 )
+         | AND ( ( "SQ_0"."TESTSTRING" IS NOT NULL )
+         | AND ( "SQ_0"."TESTSTRING" = \\'asdf\\' ) ) ) ) ) AS "SQ_1"""".stripMargin
+    )
+  }
+
   test("Cast long to decimal", P0Test, P1Test) {
     checkAnswer(
       sqlContext.sql(

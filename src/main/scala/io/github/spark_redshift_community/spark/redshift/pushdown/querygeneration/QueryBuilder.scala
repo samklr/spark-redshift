@@ -168,7 +168,7 @@ class QueryBuilder(plan: LogicalPlan) {
             case DeleteAction(None) =>
               return Some(DeleteQuery(SourceQuery(target, targetTable.output, alias.next()),
                                 mergeCondition, generateQueries(sourcePlan)))
-            case UpdateAction(condition, assignments) =>
+            case _: UpdateAction =>
               // TODO: Only UPDATE in matched Action
               throw new NotImplementedError()
             case _ =>
@@ -361,10 +361,12 @@ class QueryBuilder(plan: LogicalPlan) {
    * @param plan The initial LogicalPlan to be simplified.
    * @return A simplified LogicalPlan with SubqueryAlias, and View nodes removed.
    */
-  private def EliminateSubqueryAliasesAndView(plan: LogicalPlan): LogicalPlan = {
+  // Visible to package for unit testing; not intended as public API.
+  // No functional change — package-private compiles to JVM public.
+  private[querygeneration] def EliminateSubqueryAliasesAndView(plan: LogicalPlan): LogicalPlan = {
     val transformed = plan.transformWithSubqueries {
       case SubqueryAlias(_, child) => child
-      case View(_, _, child) => child
+      case v: View => v.child
     }
     if (transformed != plan) EliminateSubqueryAliasesAndView(transformed) else transformed
   }

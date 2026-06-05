@@ -480,7 +480,119 @@ class SmallWritesCorrectnessSuite extends LSTIntegrationPushdownSuiteBase {
        |          "SQ_2"."SR_ITEM_SK" = "SQ_1"."SR_ITEM_SK"
        |        )
        |      )
-       |  ) AS "SQ_3"""".stripMargin)
+       |  ) AS "SQ_3"""".stripMargin,
+    // Spark 4.1: extra project wrapping adds SQ_4 -> SQ_5 layer
+    s"""INSERT INTO
+       |  "PUBLIC"."store_returns_copy"
+       |SELECT
+       |  ("SQ_4"."SQ_4_COL_0") AS "SQ_5_COL_0",
+       |  ("SQ_4"."SQ_4_COL_1") AS "SQ_5_COL_1",
+       |  ("SQ_4"."SQ_4_COL_2") AS "SQ_5_COL_2",
+       |  ("SQ_4"."SQ_4_COL_3") AS "SQ_5_COL_3",
+       |  ("SQ_4"."SQ_4_COL_4") AS "SQ_5_COL_4",
+       |  ("SQ_4"."SQ_4_COL_5") AS "SQ_5_COL_5",
+       |  ("SQ_4"."SQ_4_COL_6") AS "SQ_5_COL_6",
+       |  ("SQ_4"."SQ_4_COL_7") AS "SQ_5_COL_7",
+       |  ("SQ_4"."SQ_4_COL_8") AS "SQ_5_COL_8",
+       |  ("SQ_4"."SQ_4_COL_9") AS "SQ_5_COL_9",
+       |  ("SQ_4"."SQ_4_COL_10") AS "SQ_5_COL_10",
+       |  ("SQ_4"."SQ_4_COL_11") AS "SQ_5_COL_11",
+       |  ("SQ_4"."SQ_4_COL_12") AS "SQ_5_COL_12",
+       |  ("SQ_4"."SQ_4_COL_13") AS "SQ_5_COL_13",
+       |  ("SQ_4"."SQ_4_COL_14") AS "SQ_5_COL_14",
+       |  ("SQ_4"."SQ_4_COL_15") AS "SQ_5_COL_15",
+       |  ("SQ_4"."SQ_4_COL_16") AS "SQ_5_COL_16",
+       |  ("SQ_4"."SQ_4_COL_17") AS "SQ_5_COL_17",
+       |  ("SQ_4"."SQ_4_COL_18") AS "SQ_5_COL_18",
+       |  ("SQ_4"."SQ_4_COL_19") AS "SQ_5_COL_19"
+       |FROM
+       |  (
+       |    SELECT
+       |      ("SQ_3"."SQ_3_COL_0") AS "SQ_4_COL_0",
+       |      ("SQ_3"."SQ_3_COL_1") AS "SQ_4_COL_1",
+       |      ("SQ_3"."SQ_3_COL_2") AS "SQ_4_COL_2",
+       |      ("SQ_3"."SQ_3_COL_3") AS "SQ_4_COL_3",
+       |      ("SQ_3"."SQ_3_COL_4") AS "SQ_4_COL_4",
+       |      ("SQ_3"."SQ_3_COL_5") AS "SQ_4_COL_5",
+       |      ("SQ_3"."SQ_3_COL_6") AS "SQ_4_COL_6",
+       |      ("SQ_3"."SQ_3_COL_7") AS "SQ_4_COL_7",
+       |      ("SQ_3"."SQ_3_COL_8") AS "SQ_4_COL_8",
+       |      ("SQ_3"."SQ_3_COL_9") AS "SQ_4_COL_9",
+       |      ("SQ_3"."SQ_3_COL_10") AS "SQ_4_COL_10",
+       |      ("SQ_3"."SQ_3_COL_11") AS "SQ_4_COL_11",
+       |      ("SQ_3"."SQ_3_COL_12") AS "SQ_4_COL_12",
+       |      ("SQ_3"."SQ_3_COL_13") AS "SQ_4_COL_13",
+       |      ("SQ_3"."SQ_3_COL_14") AS "SQ_4_COL_14",
+       |      ("SQ_3"."SQ_3_COL_15") AS "SQ_4_COL_15",
+       |      ("SQ_3"."SQ_3_COL_16") AS "SQ_4_COL_16",
+       |      ("SQ_3"."SQ_3_COL_17") AS "SQ_4_COL_17",
+       |      ("SQ_3"."SQ_3_COL_18") AS "SQ_4_COL_18",
+       |      ("SQ_3"."SQ_3_COL_19") AS "SQ_4_COL_19"
+       |    FROM
+       |      (
+       |        SELECT
+       |          ("SQ_1"."SR_RETURNED_DATE_SK") AS "SQ_3_COL_0",
+       |          ("SQ_1"."SR_RETURN_TIME_SK") AS "SQ_3_COL_1",
+       |          ("SQ_1"."SR_ITEM_SK") AS "SQ_3_COL_2",
+       |          ("SQ_1"."SR_CUSTOMER_SK") AS "SQ_3_COL_3",
+       |          ("SQ_1"."SR_CDEMO_SK") AS "SQ_3_COL_4",
+       |          ("SQ_1"."SR_HDEMO_SK") AS "SQ_3_COL_5",
+       |          ("SQ_1"."SR_ADDR_SK") AS "SQ_3_COL_6",
+       |          ("SQ_1"."SR_STORE_SK") AS "SQ_3_COL_7",
+       |          ("SQ_1"."SR_REASON_SK") AS "SQ_3_COL_8",
+       |          ("SQ_1"."SR_TICKET_NUMBER") AS "SQ_3_COL_9",
+       |          ("SQ_1"."SR_RETURN_QUANTITY") AS "SQ_3_COL_10",
+       |          ("SQ_1"."SR_RETURN_AMT") AS "SQ_3_COL_11",
+       |          ("SQ_1"."SR_RETURN_TAX") AS "SQ_3_COL_12",
+       |          ("SQ_1"."SR_RETURN_AMT_INC_TAX") AS "SQ_3_COL_13",
+       |          ("SQ_1"."SR_FEE") AS "SQ_3_COL_14",
+       |          ("SQ_1"."SR_RETURN_SHIP_COST") AS "SQ_3_COL_15",
+       |          ("SQ_1"."SR_REFUNDED_CASH") AS "SQ_3_COL_16",
+       |          ("SQ_1"."SR_REVERSED_CHARGE") AS "SQ_3_COL_17",
+       |          ("SQ_1"."SR_STORE_CREDIT") AS "SQ_3_COL_18",
+       |          ("SQ_1"."SR_NET_LOSS") AS "SQ_3_COL_19",
+       |          ("SQ_2"."SR_RETURNED_DATE_SK") AS "SQ_3_COL_20",
+       |          ("SQ_2"."SR_RETURN_TIME_SK") AS "SQ_3_COL_21",
+       |          ("SQ_2"."SR_ITEM_SK") AS "SQ_3_COL_22",
+       |          ("SQ_2"."SR_CUSTOMER_SK") AS "SQ_3_COL_23",
+       |          ("SQ_2"."SR_CDEMO_SK") AS "SQ_3_COL_24",
+       |          ("SQ_2"."SR_HDEMO_SK") AS "SQ_3_COL_25",
+       |          ("SQ_2"."SR_ADDR_SK") AS "SQ_3_COL_26",
+       |          ("SQ_2"."SR_STORE_SK") AS "SQ_3_COL_27",
+       |          ("SQ_2"."SR_REASON_SK") AS "SQ_3_COL_28",
+       |          ("SQ_2"."SR_TICKET_NUMBER") AS "SQ_3_COL_29",
+       |          ("SQ_2"."SR_RETURN_QUANTITY") AS "SQ_3_COL_30",
+       |          ("SQ_2"."SR_RETURN_AMT") AS "SQ_3_COL_31",
+       |          ("SQ_2"."SR_RETURN_TAX") AS "SQ_3_COL_32",
+       |          ("SQ_2"."SR_RETURN_AMT_INC_TAX") AS "SQ_3_COL_33",
+       |          ("SQ_2"."SR_FEE") AS "SQ_3_COL_34",
+       |          ("SQ_2"."SR_RETURN_SHIP_COST") AS "SQ_3_COL_35",
+       |          ("SQ_2"."SR_REFUNDED_CASH") AS "SQ_3_COL_36",
+       |          ("SQ_2"."SR_REVERSED_CHARGE") AS "SQ_3_COL_37",
+       |          ("SQ_2"."SR_STORE_CREDIT") AS "SQ_3_COL_38",
+       |          ("SQ_2"."SR_NET_LOSS") AS "SQ_3_COL_39"
+       |        FROM
+       |          (
+       |            SELECT
+       |              *
+       |            FROM
+       |              "PUBLIC"."store_returns" AS "RCQ_ALIAS"
+       |          ) AS "SQ_1"
+       |          INNER JOIN (
+       |            SELECT
+       |              *
+       |            FROM
+       |              "PUBLIC"."store_returns_copy" AS "RCQ_ALIAS"
+       |          ) AS "SQ_2" ON (
+       |            (
+       |              "SQ_2"."SR_TICKET_NUMBER" = "SQ_1"."SR_TICKET_NUMBER"
+       |            )
+       |            AND (
+       |              "SQ_2"."SR_ITEM_SK" = "SQ_1"."SR_ITEM_SK"
+       |            )
+       |          )
+       |      ) AS "SQ_3"
+       |  ) AS "SQ_4"""".stripMargin)
   test("5. Insert") {
     read
       .option("dbtable", s"store_returns")
