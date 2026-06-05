@@ -18,7 +18,7 @@ package io.github.spark_redshift_community.spark.redshift.test
 
 import io.github.spark_redshift_community.spark.redshift.Conversions
 import org.apache.spark.sql.Row
-import org.apache.spark.sql.types.DecimalType
+import org.apache.spark.sql.types.{DecimalType, DoubleType, StringType, StructField, StructType}
 
 /**
  * Integration tests for decimal support. For a reference on Redshift's DECIMAL type, see
@@ -89,6 +89,25 @@ class DecimalIntegrationSuite extends IntegrationSuiteBase {
       val res: Double = df.collect().toSeq.head.getDecimal(0).doubleValue()
       assert(res === (91593373L / 1000000.0) +- 0.01)
       assert(df.schema.fields.head.dataType === DecimalType(28, 8))
+    }
+  }
+
+  test("reading DECIMAL with custom schema mapping to DoubleType") {
+    withTempRedshiftTable("decimal_to_double") { tableName =>
+      redshiftWrapper.executeUpdate(conn,
+        s"CREATE TABLE $tableName (id DECIMAL(38,10), name VARCHAR(100))")
+      redshiftWrapper.executeUpdate(conn,
+        s"INSERT INTO $tableName VALUES (123.456, 'test')")
+
+      val schema = StructType(Seq(
+        StructField("id", DoubleType),
+        StructField("name", StringType)
+      ))
+
+      val df = read.schema(schema).option("dbtable", tableName).load()
+      val rows = df.collect()
+      assert(rows.length === 1)
+      assert(rows(0).getDouble(0) === 123.456 +- 0.001)
     }
   }
 }

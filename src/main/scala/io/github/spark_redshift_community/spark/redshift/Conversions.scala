@@ -174,11 +174,26 @@ private[redshift] object Conversions {
       case _ if overrideNullable && from!= null && from.toString.isEmpty => null
       // Redshift does not have a cast for single byte so it will be received as a string
       case ByteType if from != null => java.lang.Byte.parseByte(from.toString)
-      case DoubleType if from != null => from.asInstanceOf[Number].doubleValue
-      case FloatType if from != null => from.asInstanceOf[Number].floatValue
-      case IntegerType if from != null => from.asInstanceOf[Number].intValue
-      case LongType if from != null => from.asInstanceOf[Number].longValue
-      case ShortType if from != null => from.asInstanceOf[Number].shortValue
+      case DoubleType if from != null => from match {
+        case d: org.apache.spark.sql.types.Decimal => d.toDouble
+        case n: Number => n.doubleValue
+      }
+      case FloatType if from != null => from match {
+        case d: org.apache.spark.sql.types.Decimal => d.toFloat
+        case n: Number => n.floatValue
+      }
+      case IntegerType if from != null => from match {
+        case d: org.apache.spark.sql.types.Decimal => d.toInt
+        case n: Number => n.intValue
+      }
+      case LongType if from != null => from match {
+        case d: org.apache.spark.sql.types.Decimal => d.toLong
+        case n: Number => n.longValue
+      }
+      case ShortType if from != null => from match {
+        case d: org.apache.spark.sql.types.Decimal => d.toShort
+        case n: Number => n.shortValue
+      }
       case _: DecimalType if from != null && from.isInstanceOf[Double] =>
         org.apache.spark.sql.types.Decimal(from.asInstanceOf[Double])
       case _: DecimalType if from != null & from.isInstanceOf[org.apache.spark.sql.types.Decimal] =>

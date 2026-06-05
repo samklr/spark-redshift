@@ -152,4 +152,15 @@ class ConversionsSuite extends AnyFunSuite {
     assert(convertRow(Array("inf")) === Row(Double.PositiveInfinity))
     assert(convertRow(Array("-inf")) === Row(Double.NegativeInfinity))
   }
+
+  test("parquetDataTypeConvert handles Decimal to numeric types") {
+    val decimal = Decimal(123.456)
+    val convert = Conversions.parquetDataTypeConvert(_: Any, _: DataType, "", false)
+
+    assert(convert(decimal, DoubleType) === 123.456)
+    assert(convert(decimal, FloatType) === 123.456f)
+    assert(convert(decimal, IntegerType) === 123)
+    assert(convert(decimal, LongType) === 123L)
+    assert(convert(decimal, ShortType) === 123.toShort)
+  }
 }
